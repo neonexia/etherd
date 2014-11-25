@@ -1,0 +1,10 @@
+*.iml
+*.log
+*.class
+.idea/
+.cache/
+.gradle/
+target/
+classes/
+dist/
+lib/
