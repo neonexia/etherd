@@ -1,16 +1,16 @@
 package com.ocg.etherd.topology
 
 import com.ocg.etherd.streams.{WriteableEventStream, ReadableEventStream}
+import com.ocg.etherd.spn.SPN
 
-
-class TopologyContext(sc: StageContext,
-                      istreams: Set[ReadableEventStream],
-                      newOutStream: (String) => WriteableEventStream,
-                      partitionId: Int) {
+class SPNExecutionContext(istreams: Set[ReadableEventStream],
+                          newOutStream: (String) => WriteableEventStream, partitionId: Int) {
 
   def getInputStreams : Set[ReadableEventStream] = this.istreams
 
   def defaultOutStream: WriteableEventStream = this.newOutStream("default")
+
+  def getNewStage(spn: SPN) = new Stage(spn)
 
   def waitForCompletion() = {
     this.wait()
@@ -19,8 +19,4 @@ class TopologyContext(sc: StageContext,
   def signalComplete() = {
     this.notifyAll()
   }
-}
-
-object TopologyContext {
-
 }

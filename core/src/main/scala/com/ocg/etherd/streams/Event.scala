@@ -17,6 +17,11 @@ object Event {
     new Event(bbKey.putInt(key).array, bbVal.putInt(record).array)
   }
 
+  def apply(key: String, record: Int):Event = {
+    val bbVal = ByteBuffer.allocate(4)
+    new Event(key.getBytes, bbVal.putInt(record).array)
+  }
+
   def keyAsString(event: Event) : String = {
     new String(event.getKey)
   }
