@@ -10,7 +10,7 @@ class StreamsSpec extends UnitSpec {
       val q = mutable.Queue[Event]()
       val istream = EventStream.sampleRange("default", 10)
       val wstream = EventStream.sampleWritabletream(q)
-      val spn = SPN.pass(this.simple(istream, wstream))
+      val spn = ingest(istream, wstream)
       spn.beginProcessStreams()
       istream.run()
       assertResult(10) {q.size}
@@ -20,7 +20,7 @@ class StreamsSpec extends UnitSpec {
     val istream1 = EventStream.sampleRange("default", 10)
     val istream2 = EventStream.sampleRange("default", 10)
     val wstream = EventStream.sampleWritabletream(q)
-    val spn = SPN.pass(this.simple(Set(istream1, istream2), wstream))
+    val spn = ingest(mutable.ListBuffer[ReadableEventStream](istream1, istream2), wstream)
     spn.beginProcessStreams()
     istream1.run()
     istream2.run()
@@ -40,9 +40,13 @@ class StreamsSpec extends UnitSpec {
 
     val outq = mutable.Queue[Event]()
     val wstream = EventStream.sampleWritabletream(outq)
-    val spn = SPN.filter(this.simple(istream, wstream), List("#baddata"))
+
+    val spn = ingest(mutable.ListBuffer[ReadableEventStream](istream), wstream)
+    val filterSpn = spn.filterByKeys(List("#baddata"))
+
     spn.beginProcessStreams()
     istream.run()
+
     assertResult(2) {
       outq.size
     }
@@ -54,7 +58,8 @@ class StreamsSpec extends UnitSpec {
 
     val outq = mutable.Queue[Event]()
     val wstream = EventStream.sampleWritabletream(outq)
-    val spn = SPN.filter(this.simple(istream, wstream), List("#baddata"))
+    val spn = ingest(mutable.ListBuffer[ReadableEventStream](istream), wstream)
+    val filterSpn = spn.filterByKeys(List("#baddata"))
     spn.beginProcessStreams()
     istream.run()
     assertResult(0) {outq.size}
@@ -70,7 +75,8 @@ class StreamsSpec extends UnitSpec {
 
     val outq = mutable.Queue[Event]()
     val wstream = EventStream.sampleWritabletream(outq)
-    val spn = SPN.filter(this.simple(istream, wstream), List("#baddata"))
+    val spn = ingest(mutable.ListBuffer[ReadableEventStream](istream), wstream)
+    val filterSpn = spn.filterByKeys(List("#baddata"))
     spn.beginProcessStreams()
     istream.run()
     assertResult(0) {outq.size}

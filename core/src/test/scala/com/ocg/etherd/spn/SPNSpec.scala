@@ -9,7 +9,7 @@ import scala.collection.mutable
  */
 class SPNSpec extends UnitSpec {
   "A Passthrough SPN" should "build a single stage" in {
-    val spn = buildPass
+    val spn = ingest()
     var finalStageList = mutable.ListBuffer.empty[Stage]
     spn.buildStages(finalStageList)
     assertResult(1) {
@@ -18,7 +18,7 @@ class SPNSpec extends UnitSpec {
   }
 
   it should "if combined with MappedSPN build a single stage" in{
-    val spn = buildPass
+    val spn = ingest()
     val map = spn.map {ev => ev}
     var finalStageList = mutable.ListBuffer.empty[Stage]
     map.buildStages(finalStageList)
@@ -28,22 +28,14 @@ class SPNSpec extends UnitSpec {
   }
 
   it should "when sink into 2 SPN's build 3 stages" in {
-    val spn = buildPass
-    val spn1 = buildPass
-    val spn2 = buildPass
+    val spn = ingest()
+    val spn1 = ingest()
+    val spn2 = ingest()
     spn.sink(List[SPN](spn1, spn2))
     var finalStageList = mutable.ListBuffer.empty[Stage]
     spn.buildStages(finalStageList)
     assertResult(3) {
       finalStageList.size
     }
-  }
-
-  def buildPass: SPN ={
-    val q = mutable.Queue[Event]()
-    val istream = EventStream.sampleRange("default", 10)
-    val wstream = EventStream.sampleWritabletream(q)
-    val spn = SPN.pass(this.simple(istream, wstream))
-    spn
   }
 }
