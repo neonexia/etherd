@@ -9,8 +9,8 @@ class StreamsSpec extends UnitSpec {
   "A pass through spn" should "pass all events from an input stream to output stream" in {
       val q = mutable.Queue[Event]()
       val istream = EventStream.sampleRange("default", 10)
-      val wstream = EventStream.sampleWritabletream(q)
-      val spn = ingest(istream, wstream)
+      val wstream = EventStream.sampleWritablestream(q)
+      val spn = ingest(wstream, istream)
       spn.beginProcessStreams()
       istream.run()
       assertResult(10) {q.size}
@@ -19,8 +19,8 @@ class StreamsSpec extends UnitSpec {
     val q = mutable.Queue[Event]()
     val istream1 = EventStream.sampleRange("default", 10)
     val istream2 = EventStream.sampleRange("default", 10)
-    val wstream = EventStream.sampleWritabletream(q)
-    val spn = ingest(mutable.ListBuffer[ReadableEventStream](istream1, istream2), wstream)
+    val wstream = EventStream.sampleWritablestream(q)
+    val spn = ingest(wstream, istream1, istream2)
     spn.beginProcessStreams()
     istream1.run()
     istream2.run()
@@ -39,9 +39,9 @@ class StreamsSpec extends UnitSpec {
     val istream = EventStream.sampleRange("default", inq.iterator)
 
     val outq = mutable.Queue[Event]()
-    val wstream = EventStream.sampleWritabletream(outq)
+    val wstream = EventStream.sampleWritablestream(outq)
 
-    val spn = ingest(mutable.ListBuffer[ReadableEventStream](istream), wstream)
+    val spn = ingest(wstream, istream)
     val filterSpn = spn.filterByKeys(List("#baddata"))
 
     spn.beginProcessStreams()
@@ -57,8 +57,8 @@ class StreamsSpec extends UnitSpec {
     val istream = EventStream.sampleRange("default", inq.iterator)
 
     val outq = mutable.Queue[Event]()
-    val wstream = EventStream.sampleWritabletream(outq)
-    val spn = ingest(mutable.ListBuffer[ReadableEventStream](istream), wstream)
+    val wstream = EventStream.sampleWritablestream(outq)
+    val spn = ingest(wstream, istream)
     val filterSpn = spn.filterByKeys(List("#baddata"))
     spn.beginProcessStreams()
     istream.run()
@@ -74,8 +74,8 @@ class StreamsSpec extends UnitSpec {
     val istream = EventStream.sampleRange("default", inq.iterator)
 
     val outq = mutable.Queue[Event]()
-    val wstream = EventStream.sampleWritabletream(outq)
-    val spn = ingest(mutable.ListBuffer[ReadableEventStream](istream), wstream)
+    val wstream = EventStream.sampleWritablestream(outq)
+    val spn = ingest(wstream, istream)
     val filterSpn = spn.filterByKeys(List("#baddata"))
     spn.beginProcessStreams()
     istream.run()

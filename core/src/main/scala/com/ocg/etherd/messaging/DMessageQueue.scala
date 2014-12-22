@@ -1,6 +1,8 @@
 package com.ocg.etherd.messaging
 
 /**
+ * Abstracts out a distributed messaging queue for isolation between multiple stages
+ * of a topology or for composing topologies
  * - topics- High level event categories
  * - topic partitions (distributed)
  * - per topic publish async streams (Single default stream)
@@ -8,6 +10,12 @@ package com.ocg.etherd.messaging
  * - intermediate topics for topology executions.
  * - logging and monitoring listener subscriptions
  */
-class MessageGrid {
 
+trait  DMessageQueue {
+  def getEventQueue(topic: String): DMessageQueueStream
+
+  def buildFrom(ostream: DMessageQueueStream) : DMessageQueueStream
 }
+
+
+

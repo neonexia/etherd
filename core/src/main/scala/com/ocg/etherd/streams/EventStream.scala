@@ -1,8 +1,9 @@
 package com.ocg.etherd.streams
 
 import java.util.concurrent.atomic.AtomicInteger
-
+import java.util.concurrent.ConcurrentLinkedQueue
 import scala.collection.mutable
+
 
 trait EventStream extends Runnable{
   def topic: String
@@ -83,7 +84,7 @@ object EventStream {
     sampleRange(topic, 0)
   }
 
-  def sampleWritabletream(q: mutable.Queue[Event]): WriteableEventStream = {
+  def sampleWritablestream(q: mutable.Queue[Event]): WriteableEventStream = {
     new WriteableEventStream {
 
       def topic = "default"
@@ -96,6 +97,19 @@ object EventStream {
         events.foreach(event => this.push(event))
       }
     }
+  }
+
+  def sampleWritablestream(q: ConcurrentLinkedQueue[Event]): WriteableEventStream = {
+      new WriteableEventStream {
+        def topic = "default"
+        def push(event: Event): Unit = {
+          q.add(event)
+        }
+
+        def push(events: Iterator[Event]) {
+          events.foreach(event => this.push(event))
+        }
+      }
   }
 }
 
