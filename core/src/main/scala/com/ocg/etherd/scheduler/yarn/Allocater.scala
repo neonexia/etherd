@@ -1,11 +1,11 @@
-package com.ocg.etherd.scheduling.yarn
+package com.ocg.etherd.scheduler.yarn
 
-import java.util
-import org.apache.hadoop.yarn.api.records.{ContainerStatus, ContainerLaunchContext}
-import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest
-import org.apache.hadoop.yarn.client.api.{NMClient, AMRMClient}
-import org.apache.hadoop.yarn.conf.YarnConfiguration
 import scala.collection.mutable.ListBuffer
+import org.apache.hadoop.yarn.api.records._
+import org.apache.hadoop.yarn.client.api._
+import org.apache.hadoop.yarn.conf.YarnConfiguration
+import org.apache.hadoop.yarn.client.api.AMRMClient
+import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest
 
 class Allocater(yarnConf: YarnConfiguration, amClient: AMRMClient[ContainerRequest], nmClient: NMClient) {
 
@@ -25,7 +25,7 @@ class Allocater(yarnConf: YarnConfiguration, amClient: AMRMClient[ContainerReque
     while(!done)
     {
       val allocateResponse = amClient.allocate(0)
-      val allocatedContainers = allocateResponse.getAllocatedContainers()
+      val allocatedContainers = allocateResponse.getAllocatedContainers
       for(container <- Utils.getScalaList(allocatedContainers)) {
         allocSize += 1
         val lc = onAllocation()
@@ -46,7 +46,7 @@ class Allocater(yarnConf: YarnConfiguration, amClient: AMRMClient[ContainerReque
       var done: Boolean = false
       while(!done){
         val allocateResponse = amClient.allocate(0)
-        val statuses = allocateResponse.getCompletedContainersStatuses()
+        val statuses = allocateResponse.getCompletedContainersStatuses
         for (status <- Utils.getScalaList(statuses)){
           completedContainers += 1
         }

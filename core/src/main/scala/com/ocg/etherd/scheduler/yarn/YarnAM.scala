@@ -1,14 +1,18 @@
-package com.ocg.etherd.scheduling.yarn
+package com.ocg.etherd.scheduler.yarn
 
 import java.util
-import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.security.{SecurityUtil, UserGroupInformation}
-import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest
-import org.apache.hadoop.yarn.conf.YarnConfiguration
+import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.yarn.util.ConverterUtils
+import org.apache.hadoop.yarn.api.records._
+import org.apache.hadoop.yarn.api.protocolrecords._
+import org.apache.hadoop.yarn.client.api._
+import org.apache.hadoop.yarn.conf.YarnConfiguration
+import org.apache.hadoop.yarn.client.api.AMRMClient
+import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest
+
 import scala.collection.mutable._
-import scala.collection.immutable._
 
 class YarnAM(yarnConf: YarnConfiguration, queue: String) {
   private var amClient: AMRMClient[ContainerRequest] = _
@@ -19,7 +23,7 @@ class YarnAM(yarnConf: YarnConfiguration, queue: String) {
 
     // set up user group information, setup a new yarn client and create a default application
     UserGroupInformation.setConfiguration(yarnConf)
-    val ugi = UserGroupInformation.getCurrentUser()
+    val ugi = UserGroupInformation.getCurrentUser
     val yarnClient = startYarnClient(yarnConf)
     val appId = createApplication(yarnClient, this.queue)
     ugi.addToken(yarnClient.getAMRMToken(appId))
@@ -43,7 +47,7 @@ class YarnAM(yarnConf: YarnConfiguration, queue: String) {
 
   def allocate(command: String){
     val allocator = new Allocater(yarnConf, amClient, nmClient)
-    allocator.beginAllocate (amClient.getAvailableResources(), registerResponse.getMaximumResourceCapability(),
+    allocator.beginAllocate (amClient.getAvailableResources, registerResponse.getMaximumResourceCapability,
       this.createResourceRequests(1, 1024),
       () => this.setUpContainerLaunchContext(command),
       (statuses: java.util.List[ContainerStatus]) => {/* Called on completion. we will print some status here*/})
@@ -60,19 +64,21 @@ class YarnAM(yarnConf: YarnConfiguration, queue: String) {
   def startYarnClient(yarnConf: YarnConfiguration) : YarnClient = {
     val yarnClient = YarnClient.createYarnClient
     yarnClient.init(yarnConf)
-    yarnClient.start
+    yarnClient.start()
     yarnClient
   }
 
   def createApplication(rmClient: YarnClient, queue: String) : ApplicationId= {
-    val newApp = rmClient.createApplication();
-    val appId = newApp.getNewApplicationResponse().getApplicationId();
+    val newApp = rmClient.createApplication()
+    val appId = newApp.getNewApplicationResponse.getApplicationId
 
     val pri = Priority.newInstance(0)
     val amContainer = ContainerLaunchContext.newInstance(null, null, null, null, null, null)
-    val appContext = ApplicationSubmissionContext.newInstance(appId, "Hawq queue for " + queue, queue, pri, amContainer, true, false, 1, null, "Hawq queue")
+    val appContext = ApplicationSubmissionContext.newInstance(appId, "Etherd topology queue for " + queue,
+                                                              queue, pri, amContainer,
+                                                              true, false, 1, null, "Etherd topology queue")
     // Submit the application to the applications manager
-    return rmClient.submitApplication(appContext)
+    rmClient.submitApplication(appContext)
   }
 
   def createResourceRequests(workers: Int, memory: Int) : ListBuffer[ContainerRequest] = {
@@ -82,7 +88,7 @@ class YarnAM(yarnConf: YarnConfiguration, queue: String) {
     reqs
   }
 
-  def getNextAttemptid() : ApplicationAttemptId = {
+  def getNextAttemptid : ApplicationAttemptId = {
     val t = java.lang.System.currentTimeMillis()
     ConverterUtils.toApplicationAttemptId(ConverterUtils.APPLICATION_ATTEMPT_PREFIX + "_" + t.toString() + "_0001" + "_0001")
   }

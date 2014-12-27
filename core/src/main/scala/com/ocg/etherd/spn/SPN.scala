@@ -32,6 +32,20 @@ abstract class SPN(ec: StageExecutionContext) {
     }
   }
 
+  protected def linkOrSinkDefault(topic: String, event: Event) = {
+    this.getLinkedSPN match {
+      case Some(spn) => spn.processEvent(topic, event)
+      case None => this.defaultOutStream.push(event)
+    }
+  }
+
+  protected def linkOrSinkDefault(topic: String, events: Iterator[Event]) = {
+    this.getLinkedSPN match {
+      case Some(linkedSPN) => events.foreach { event => linkedSPN.processEvent(topic, event) }
+      case None => this.defaultOutStream.push(events)
+    }
+  }
+
   def attachInputStream(stream: ReadableEventStream) = {
     this.istreams += stream
   }
@@ -40,32 +54,8 @@ abstract class SPN(ec: StageExecutionContext) {
     this.defaultOutStream = stream
   }
 
-  def addSinkedSPN(spn: SPN): Unit = {
-    this.sinkedSPNs += spn
-  }
-
-  def setLinkedSPN(spn: SPN): Unit = {
-    this.linkedSpn = Some(spn)
-  }
-
-  def getLinkedSPN: Option[SPN] = this.linkedSpn
-
-  def linkOrSinkDefault(topic: String, event: Event) = {
-    this.getLinkedSPN match {
-      case Some(spn) => spn.processEvent(topic, event)
-      case None => this.defaultOutStream.push(event)
-    }
-  }
-
-  def linkOrSinkDefault(topic: String, events: Iterator[Event]) = {
-    this.getLinkedSPN match {
-      case Some(linkedSPN) => events.foreach { event => linkedSPN.processEvent(topic, event) }
-      case None => this.defaultOutStream.push(events)
-    }
-  }
-
   def buildStages(finalStageList: mutable.ListBuffer[Stage]): Unit = {
-    finalStageList += this.ec.getNewStage(this)
+    finalStageList += new Stage(this)
     this.sinkedSPNs.foreach { _.buildStages(finalStageList) }
   }
 
@@ -96,5 +86,15 @@ abstract class SPN(ec: StageExecutionContext) {
     targets.foreach { target =>
       this.sinkedSPNs += target
     }
+  }
+
+  private def getLinkedSPN: Option[SPN] = this.linkedSpn
+
+  private def addSinkedSPN(spn: SPN): Unit = {
+    this.sinkedSPNs += spn
+  }
+
+  private def setLinkedSPN(spn: SPN): Unit = {
+    this.linkedSpn = Some(spn)
   }
 }

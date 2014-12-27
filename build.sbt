@@ -17,6 +17,10 @@ lazy val core = project.settings(
       libraryDependencies += "com.101tec" % "zkclient" % "0.4",
       libraryDependencies += "com.yammer.metrics" % "metrics-core" % "2.2.0",
       libraryDependencies += "com.yammer.metrics" % "metrics-annotation" % "2.2.0",
+      libraryDependencies += "org.apache.hadoop" % "hadoop-common" % "2.2.0",
+      libraryDependencies += "org.apache.hadoop" % "hadoop-yarn-api" % "2.2.0",
+      libraryDependencies += "org.apache.hadoop" % "hadoop-yarn-client" % "2.2.0",
+      libraryDependencies += "org.apache.hadoop" % "hadoop-yarn-common" % "2.2.0",
       libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.2.2"
  )
 
