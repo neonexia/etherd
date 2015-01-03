@@ -1,11 +1,10 @@
 package com.ocg.etherd.testbase
 
-import com.ocg.etherd.messaging.DMessageQueueStream
+import com.ocg.etherd.messaging.{LocalWritableDMessageBusStream, LocalReadableDMessageBusStream, LocalDMessageBus}
 import org.scalatest._
 import com.ocg.etherd.streams._
 import com.ocg.etherd.spn.{PassThroughSPN, SPN}
-import com.ocg.etherd.topology.StageExecutionContext
-import scala.collection.mutable
+import com.ocg.etherd.topology.EtherdEnv
 
 /**
  *
@@ -13,28 +12,36 @@ import scala.collection.mutable
 abstract class UnitSpec extends FlatSpec with Matchers with
 OptionValues with Inside with Inspectors
 {
+  def pass = new PassThroughSPN(new EtherdEnv("topology"))
+
   def ingest(): SPN = {
-    val q = mutable.Queue[Event]()
-    val istream = EventStream.sampleRange("default", 10)
-    val ostream = EventStream.sampleWritablestream(q)
-    val spn = new PassThroughSPN(new StageExecutionContext())
+    val bus = new LocalDMessageBus()
+    val istream = new LocalReadableDMessageBusStream("topology_in1", bus)
+    val ostream = new LocalWritableDMessageBusStream("topology_out", bus)
+    val spn = new PassThroughSPN(new EtherdEnv("topology"))
     spn.attachInputStream(istream)
-    spn.defaultOutStream = ostream
+    spn.setdefaultOutputStream(ostream)
     spn
   }
 
-  def ingest(ostream: WriteableEventStream, streams: ReadableEventStream*): SPN = {
-    val spn = new PassThroughSPN(new StageExecutionContext())
-    // println("streams size: " + streams.size )
-    streams.foreach{ istream => {
-      //println("attaching input stream in test")
-      spn.attachInputStream(istream)
+  def ingest(ostream: WriteableEventStream, istreams: ReadableEventStream*): SPN = {
+    val spn = new PassThroughSPN(new EtherdEnv("topology"))
+    istreams.foreach{ stream => {
+      spn.attachInputStream(stream)
     }}
-    spn.defaultOutStream = ostream
+    spn.setdefaultOutputStream(ostream)
     spn
   }
 
-  def simulateProducer(mstream: DMessageQueueStream, numEvents: Int): Unit = {
+  def ingest(istreams: ReadableEventStream*): SPN = {
+    val spn = new PassThroughSPN(new EtherdEnv("topology"))
+    istreams.foreach{ stream => {
+      spn.attachInputStream(stream)
+    }}
+    spn
+  }
+
+  def simulateProducer(mstream: WriteableEventStream, numEvents: Int): Unit = {
      val t = new Thread {
        override def run(): Unit ={
          for (i <- 0 until numEvents) {
@@ -45,5 +52,5 @@ OptionValues with Inside with Inspectors
     t.start()
   }
 
-  def buildPass: SPN = new PassThroughSPN(new StageExecutionContext())
+  def buildPass: SPN = new PassThroughSPN(new EtherdEnv("topology"))
 }

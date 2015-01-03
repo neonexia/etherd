@@ -1,12 +1,12 @@
 package com.ocg.etherd.spn
 import com.ocg.etherd.streams._
-import com.ocg.etherd.topology.StageExecutionContext
+import com.ocg.etherd.topology.EtherdEnv
 
 /**
  * Pass through
  * @param ec
  */
-class PassThroughSPN(ec: StageExecutionContext, delay:Int = 0) extends SPN(ec) {
+class PassThroughSPN(ec: EtherdEnv, delay:Int = 0) extends SPN(ec, SPN.newId()) {
 
   override def processEvent(topic: String, event: Event): Unit = {
     if (delay > 0) {

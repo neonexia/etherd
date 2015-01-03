@@ -5,9 +5,10 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import scala.collection.mutable
 
 
-trait EventStream extends Runnable{
+trait EventStream {
   def topic: String
   def windowSize = 0
+  def init(partition: Int): Unit
 }
 
 trait EventSubscription {
@@ -41,8 +42,6 @@ trait WriteableEventStream extends EventStream {
   def push(event: Event)
 
   def push(events: Iterator[Event])
-
-  def run() {}
 }
 
 class NullWriteableEventStream(streamTopic: String) extends  WriteableEventStream {
@@ -52,6 +51,8 @@ class NullWriteableEventStream(streamTopic: String) extends  WriteableEventStrea
   def push(event: Event) {}
 
   def push(events: Iterator[Event]) {}
+
+  def init(partition: Int): Unit = {}
 }
 
 object EventStream {
@@ -68,7 +69,7 @@ object EventStream {
         iter.take(count)
       }
 
-      def run(): Unit = {
+      def init(partition: Int): Unit = {
         iter.foreach { event =>
           this.publish(topic, event)
           if (publishDelay > 0) {
@@ -96,18 +97,26 @@ object EventStream {
       def push(events: Iterator[Event]) {
         events.foreach(event => this.push(event))
       }
+
+      def init(partition: Int): Unit = {
+
+      }
     }
   }
 
   def sampleWritablestream(q: ConcurrentLinkedQueue[Event]): WriteableEventStream = {
       new WriteableEventStream {
-        def topic = "default"
+        def topic = "sampleWritableStream"
         def push(event: Event): Unit = {
           q.add(event)
         }
 
         def push(events: Iterator[Event]) {
           events.foreach(event => this.push(event))
+        }
+
+        def init(partition: Int): Unit = {
+
         }
       }
   }

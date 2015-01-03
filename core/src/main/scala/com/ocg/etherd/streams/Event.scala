@@ -4,9 +4,10 @@ import java.nio.ByteBuffer
 
 /**
  */
-class Event(key: Array[Byte], record: Array[Byte]){
+class Event(key: Array[Byte], record: Array[Byte], order: Long = 0) {
   def getKey = this.key
   def getRecord = this.record
+  def getOrder = this.order
 }
 
 object Event {
