@@ -4,7 +4,7 @@ import com.ocg.etherd.messaging.{LocalWritableDMessageBusStream, LocalReadableDM
 import org.scalatest._
 import com.ocg.etherd.streams._
 import com.ocg.etherd.spn.{PassThroughSPN, SPN}
-import com.ocg.etherd.topology.EtherdEnv
+import com.ocg.etherd.EtherdEnv
 
 /**
  *
@@ -12,20 +12,20 @@ import com.ocg.etherd.topology.EtherdEnv
 abstract class UnitSpec extends FlatSpec with Matchers with
 OptionValues with Inside with Inspectors
 {
-  def pass = new PassThroughSPN(new EtherdEnv("topology"))
+  def pass = new PassThroughSPN("topology")
 
   def ingest(): SPN = {
     val bus = new LocalDMessageBus()
     val istream = new LocalReadableDMessageBusStream("topology_in1", bus)
     val ostream = new LocalWritableDMessageBusStream("topology_out", bus)
-    val spn = new PassThroughSPN(new EtherdEnv("topology"))
+    val spn = new PassThroughSPN("topology")
     spn.attachInputStream(istream)
     spn.setdefaultOutputStream(ostream)
     spn
   }
 
   def ingest(ostream: WriteableEventStream, istreams: ReadableEventStream*): SPN = {
-    val spn = new PassThroughSPN(new EtherdEnv("topology"))
+    val spn = new PassThroughSPN("topology")
     istreams.foreach{ stream => {
       spn.attachInputStream(stream)
     }}
@@ -34,7 +34,7 @@ OptionValues with Inside with Inspectors
   }
 
   def ingest(istreams: ReadableEventStream*): SPN = {
-    val spn = new PassThroughSPN(new EtherdEnv("topology"))
+    val spn = new PassThroughSPN("topology")
     istreams.foreach{ stream => {
       spn.attachInputStream(stream)
     }}
@@ -52,5 +52,5 @@ OptionValues with Inside with Inspectors
     t.start()
   }
 
-  def buildPass: SPN = new PassThroughSPN(new EtherdEnv("topology"))
+  def buildPass: SPN = new PassThroughSPN("topology")
 }

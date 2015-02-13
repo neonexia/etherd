@@ -2,10 +2,11 @@ package com.ocg.etherd.spn
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
+import com.ocg.etherd.EtherdEnv
 import com.ocg.etherd.messaging.{LocalReadableDMessageBusStream, LocalDMessageBus}
 import com.ocg.etherd.testbase.UnitSpec
 import com.ocg.etherd.streams._
-import com.ocg.etherd.topology.{EtherdEnv, Stage}
+import com.ocg.etherd.topology.Stage
 import scala.collection.mutable
 
 /**
@@ -164,20 +165,20 @@ class SPNSpec extends UnitSpec {
     // create some streams on the bus. This is where we will ingest data into
     val bus = new LocalDMessageBus()
     val default_wstream = bus.buildWriteOnlyStream("default") // --> entry point stream where we will ingest data into
-    val default_mstream = bus.buildStream("default") // --> same as above but we willr ead data from
+    val default_mstream = bus.buildStream("default") // --> same as above but we will read data from
     default_wstream.init(0)
 
     ///// build the topology
 
-    val env = new EtherdEnv("topology")  // --> env
+    val env = EtherdEnv.get  // --> env
 
     // create 2 sink spns
-    val f2spn = new FilterKeysSPN(env, List("#secondFilter"))
+    val f2spn = new FilterKeysSPN("topology", List("#secondFilter"))
     f2spn.setdefaultOutputStream(wstream)
-    val p2spn = new PassThroughSPN(env)
+    val p2spn = new PassThroughSPN("topology")
     p2spn.setdefaultOutputStream(w2stream)
 
-    val ingestSpn = new PassThroughSPN(env) // --> ingestion SPN
+    val ingestSpn = new PassThroughSPN("topology") // --> ingestion SPN
     ingestSpn.attachInputStream(default_mstream)
     ingestSpn.filterByKeys(List("#firstFilter")).sink(List(f2spn, p2spn)) // --->> define the topology
 

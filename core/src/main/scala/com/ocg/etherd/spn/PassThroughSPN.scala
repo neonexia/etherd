@@ -1,12 +1,12 @@
 package com.ocg.etherd.spn
+
+import com.ocg.etherd.EtherdEnv
 import com.ocg.etherd.streams._
-import com.ocg.etherd.topology.EtherdEnv
 
 /**
  * Pass through
- * @param ec
  */
-class PassThroughSPN(ec: EtherdEnv, delay:Int = 0) extends SPN(ec, SPN.newId()) {
+class PassThroughSPN(topologyName: String, delay:Int = 0) extends SPN(SPN.newId(), topologyName) {
 
   override def processEvent(topic: String, event: Event): Unit = {
     if (delay > 0) {

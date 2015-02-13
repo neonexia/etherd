@@ -1,4 +1,4 @@
-package com.ocg.etherd.scheduler.yarn
+package com.ocg.etherd.runtime.scheduler.yarn
 
 import scala.collection.mutable.ListBuffer
 import org.apache.hadoop.yarn.api.records._

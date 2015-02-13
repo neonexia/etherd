@@ -4,8 +4,6 @@ import com.ocg.etherd.testbase.UnitSpec
 import com.ocg.etherd.streams._
 import java.util.concurrent.ConcurrentLinkedQueue
 
-import scala.collection.mutable
-
 /**
   */
 class DMessageQueueSpec extends UnitSpec {
@@ -15,7 +13,6 @@ class DMessageQueueSpec extends UnitSpec {
     val default_mstream0 = bus.buildStream("default").asInstanceOf[LocalReadableDMessageBusStream]
     val default_mstream1 = bus.buildStream("default").asInstanceOf[LocalReadableDMessageBusStream]
     val default_wstream0 = bus.buildWriteOnlyStream("default").asInstanceOf[LocalWritableDMessageBusStream]
-
 
     default_mstream0.init(0)
     default_mstream0.init(0) // --> ensure we don't mess up if we init the same stream twice

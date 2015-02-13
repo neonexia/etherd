@@ -1,7 +1,7 @@
-package com.ocg.etherd.SchedulerSpec
+package com.ocg.etherd.runtime
 
 import com.ocg.etherd.messaging.LocalDMessageBus
-import com.ocg.etherd.scheduler.{ClusterResource}
+import com.ocg.etherd.runtime.scheduler.{ClusterResource}
 import com.ocg.etherd.spn.SPN
 import com.ocg.etherd.testbase.UnitSpec
 import com.ocg.etherd.topology.{Topology}

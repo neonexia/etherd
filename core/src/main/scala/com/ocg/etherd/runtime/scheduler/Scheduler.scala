@@ -1,4 +1,4 @@
-package com.ocg.etherd.scheduler
+package com.ocg.etherd.runtime.scheduler
 
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
@@ -25,8 +25,8 @@ private[etherd] abstract class Scheduler {
       val task = it.next
       if (task.canSchedule(offeredResource)) {
         schedulableTasks += task
-        offeredResource.consumeCores(task.resourceAsk.getCores)
-        offeredResource.consumeMemory(task.resourceAsk.getMemory)
+        offeredResource.consumeCores(task.getResourceAsk.getCores)
+        offeredResource.consumeMemory(task.getResourceAsk.getMemory)
       }
     }
 
@@ -41,17 +41,14 @@ private[etherd] abstract class Scheduler {
   def reviveOffers(): Unit
 }
 
-class SchedulableTask[T](taskInfo: T, ask: ResourceAsk) {
+class ResourceAsk(cores: Int, memory: Int) {
 
-  def resourceAsk = this.ask
+  def getCores = cores
 
-  def canSchedule(offeredResource: ClusterResource): Boolean = {
-    this.resourceAsk.getCores <= offeredResource.getCores &&
-    this.resourceAsk.getMemory <= offeredResource.getMemory
-  }
+  def getMemory = memory
 }
 
-class ClusterResource() {
+class ClusterResource(host: String) {
 
   var availableCores: AtomicInteger = new AtomicInteger(0)
   var availableMemory = new AtomicInteger(0)
@@ -73,21 +70,25 @@ class ClusterResource() {
   }
 }
 
+class SchedulableTask[T](taskInfo: T, resourceAsk: ResourceAsk) {
+
+  def getResourceAsk = this.resourceAsk
+
+  def getTaskInfo = this.taskInfo
+
+  def canSchedule(offeredResource: ClusterResource): Boolean = {
+    this.resourceAsk.getCores <= offeredResource.getCores &&
+    this.resourceAsk.getMemory <= offeredResource.getMemory
+  }
+}
+
+
 object ClusterResource {
-  def apply(cores: Int, memory: Int): ClusterResource = {
-    val r = new ClusterResource()
+  def apply(cores: Int, memory: Int, host: String): ClusterResource = {
+    val r = new ClusterResource(host)
     r.offerCores(cores)
     r.offerMemory(memory)
     r
   }
 }
-
-class ResourceAsk(cores: Int, memory: Int) {
-
-  def getCores = cores
-
-  def getMemory = memory
-}
-
-
 

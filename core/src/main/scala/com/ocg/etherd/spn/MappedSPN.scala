@@ -1,17 +1,18 @@
 package com.ocg.etherd.spn
 
+import com.ocg.etherd.EtherdEnv
 import com.ocg.etherd.streams.Event
-import com.ocg.etherd.topology.EtherdEnv
+
 
 /**
  */
-class MappedSPN(ec: EtherdEnv, f: Event => Event ) extends SPN(ec, SPN.newId()) {
+class MappedSPN(topologyName: String, f: Event => Event ) extends SPN(SPN.newId(), topologyName) {
   override def processEvent(topic: String, event: Event): Unit = {
     this.linkOrSinkDefault(topic, f(event))
   }
 }
 
-class FlatMappedSPN(ec: EtherdEnv, f: Event => Iterator[Event] ) extends SPN(ec, SPN.newId()) {
+class FlatMappedSPN(topologyName: String, f: Event => Iterator[Event] ) extends SPN(SPN.newId(), topologyName) {
   override def processEvent(topic: String, event: Event): Unit = {
     this.linkOrSinkDefault(topic, f(event))
   }

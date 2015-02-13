@@ -1,14 +1,12 @@
 package com.ocg.etherd.spn
 
-import com.ocg.etherd.streams.{Event, WriteableEventStream}
-import com.ocg.etherd.topology.EtherdEnv
+import com.ocg.etherd.EtherdEnv
+import com.ocg.etherd.streams.Event
 
 /**
  *
- * @param ec
- * @param keys
  */
-class FilterKeysSPN(ec: EtherdEnv, keys: List[String]) extends SPN(ec, SPN.newId()){
+class FilterKeysSPN(topologyName: String, keys: List[String]) extends SPN(SPN.newId(), topologyName){
 
   override def processEvent(topic: String, event: Event ): Unit = {
     if (!this.filter(event)) {

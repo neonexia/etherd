@@ -21,6 +21,9 @@ lazy val core = project.settings(
       libraryDependencies += "org.apache.hadoop" % "hadoop-yarn-api" % "2.2.0",
       libraryDependencies += "org.apache.hadoop" % "hadoop-yarn-client" % "2.2.0",
       libraryDependencies += "org.apache.hadoop" % "hadoop-yarn-common" % "2.2.0",
-      libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.2.2"
+      libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.2.2",
+      libraryDependencies += "com.typesafe.akka" % "akka-actor_2.10" % "2.3.8",
+      libraryDependencies += "com.typesafe.akka" %% "akka-remote" % "2.3.8",
+      libraryDependencies += "com.typesafe" % "config" % "1.2.1"
  )
 

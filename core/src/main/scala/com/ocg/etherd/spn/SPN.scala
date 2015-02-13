@@ -2,7 +2,8 @@ package com.ocg.etherd.spn
 
 import java.util.concurrent.atomic.AtomicInteger
 
-import com.ocg.etherd.topology.{Topology, Stage, EtherdEnv}
+import com.ocg.etherd.EtherdEnv
+import com.ocg.etherd.topology.{Topology, Stage}
 import com.ocg.etherd.streams._
 import scala.collection.mutable
 
@@ -11,7 +12,7 @@ import scala.collection.mutable
  * eg: JoinSPN, FilterSPN, MapSPN, AggregateSPN(Average, Sum) etc.
  * Each SPN can have 1+ input streams and at least one output stream.
  */
-abstract class SPN(env: EtherdEnv, spnId: Int) {
+abstract class SPN(spnId: Int, topologyName: String) {
   private var linkedSpn: Option[SPN] = None
   private var sinkedSPNs: mutable.ListBuffer[SPN] = mutable.ListBuffer.empty[SPN]
   private var istreams: mutable.ListBuffer[ReadableEventStream] = mutable.ListBuffer.empty[ReadableEventStream]
@@ -25,8 +26,8 @@ abstract class SPN(env: EtherdEnv, spnId: Int) {
   /**
    * This is called by the execution engine on the cluster node when the topology begins executing
    * Tasks here are
-   *   -initialize and subscribe to all input streams
-   *   -- initialize output streams
+   *   --initialize and subscribe to all input streams
+   *   --initialize output streams
    * The partition
    * @param partition
    */
@@ -102,7 +103,7 @@ abstract class SPN(env: EtherdEnv, spnId: Int) {
     val ostream = this.defaultOutStream match {
       case Some(stream) => stream
       case None => {
-        val wstream = this.env.messageBus.buildWriteOnlyStream(this.env.getTopologyName + this.getId.toString)
+        val wstream = EtherdEnv.get.messageBus.buildWriteOnlyStream(this.topologyName + this.getId.toString)
         this.defaultOutStream = Some(wstream)
         wstream
       }
@@ -111,7 +112,6 @@ abstract class SPN(env: EtherdEnv, spnId: Int) {
   }
 
   def setdefaultOutputStream(stream: WriteableEventStream) = {
-    // println("setting default out stream:" +  stream.get.topic + "on spn: " + this.getId)
     this.defaultOutStream = Some(stream)
   }
 
@@ -121,14 +121,14 @@ abstract class SPN(env: EtherdEnv, spnId: Int) {
   }
 
   def map(func: Event => Event): SPN = {
-    val mappedSpn = new MappedSPN(this.env, func)
+    val mappedSpn = new MappedSPN(this.topologyName, func)
     mappedSpn.setdefaultOutputStream(this.getDefaultOutputStream.get)
     this.setLinkedSPN(mappedSpn)
     mappedSpn
   }
 
   def filterByKeys(keys: List[String]): SPN = {
-    val filterSpn = new FilterKeysSPN(env, keys)
+    val filterSpn = new FilterKeysSPN(this.topologyName, keys)
     filterSpn.setdefaultOutputStream(this.getDefaultOutputStream.get)
     this.setLinkedSPN(filterSpn)
     filterSpn
@@ -136,7 +136,7 @@ abstract class SPN(env: EtherdEnv, spnId: Int) {
 
   def sink(targets: List[SPN]) = {
     targets.foreach { target =>
-      target.attachInputStream(this.env.messageBus.buildStream(this.getDefaultOutputStream.get.topic))
+      target.attachInputStream(EtherdEnv.get.messageBus.buildStream(this.getDefaultOutputStream.get.topic))
       this.sinkedSPNs += target
     }
   }
