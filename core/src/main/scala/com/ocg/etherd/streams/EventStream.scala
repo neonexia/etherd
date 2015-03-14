@@ -4,7 +4,6 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.ConcurrentLinkedQueue
 import scala.collection.mutable
 
-
 trait EventStream {
   def topic: String
   def windowSize = 0
@@ -35,7 +34,7 @@ trait ReadableEventStream extends EventStream with EventSubscription {
   }
 }
 
-trait WriteableEventStream extends EventStream {
+trait WritableEventStream extends EventStream {
 
   def topic: String
 
@@ -44,49 +43,10 @@ trait WriteableEventStream extends EventStream {
   def push(events: Iterator[Event])
 }
 
-class NullWriteableEventStream(streamTopic: String) extends  WriteableEventStream {
-
-  def topic = this.streamTopic
-
-  def push(event: Event) {}
-
-  def push(events: Iterator[Event]) {}
-
-  def init(partition: Int): Unit = {}
-}
-
 object EventStream {
 
-  def sampleRange(topic: String, range: Int): ReadableEventStream = {
-    val events = (0 until range).zipWithIndex.map(t => Event(t._1, t._2))
-    this.sampleRange(topic, events.iterator)
-  }
-
-  def sampleRange(topic:String, iter: Iterator[Event], publishDelay: Int=0) = {
-    new ReadableEventStream  {
-      def topic = "default"
-      def take(offset: Int, count: Int): Iterator[Event] = {
-        iter.take(count)
-      }
-
-      def init(partition: Int): Unit = {
-        iter.foreach { event =>
-          this.publish(topic, event)
-          if (publishDelay > 0) {
-            Thread.sleep(publishDelay)
-          }
-        }
-      }
-    }
-  }
-
-  def emptyRange(): ReadableEventStream = {
-    def topic = "default"
-    sampleRange(topic, 0)
-  }
-
-  def sampleWritablestream(q: mutable.Queue[Event]): WriteableEventStream = {
-    new WriteableEventStream {
+  def sampleWritablestream(q: mutable.Queue[Event]): WritableEventStream = {
+    new WritableEventStream {
 
       def topic = "default"
 
@@ -104,8 +64,8 @@ object EventStream {
     }
   }
 
-  def sampleWritablestream(q: ConcurrentLinkedQueue[Event]): WriteableEventStream = {
-      new WriteableEventStream {
+  def sampleWritablestream(q: ConcurrentLinkedQueue[Event]): WritableEventStream = {
+      new WritableEventStream {
         def topic = "sampleWritableStream"
         def push(event: Event): Unit = {
           q.add(event)

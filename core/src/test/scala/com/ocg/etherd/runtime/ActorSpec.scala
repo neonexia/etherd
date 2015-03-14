@@ -22,57 +22,53 @@ class ActorSpec extends UnitSpec {
     try {
       val f = cmActor.ask(GetRegisteredExecutors("topology"))(1 seconds).mapTo[ExecutorList]
       val registeredExecutors = Await.result(f, 1 seconds)
-      assertResult(0) {
-        registeredExecutors.executors.size
-      }
+      registeredExecutors.executors.size should equal(0)
     }
     finally {
-      ClusterManager.shutdown()
+      cmShutdown()
     }
   }
 
   "A single executor" should "register with cluster manager on startup" in {
+    val env = EtherdEnv.get
+
     // build stages
     val stageList = mutable.ListBuffer.empty[Stage]
     new PassThroughSPN("topology").buildStages(stageList)
 
-    assertResult(1) {
-        stageList.toList.size
-    }
+    stageList.toList.size should equal (1)
 
     // cluster manager system
     val cmActor = ClusterManager.start()
     // submit stages and wait for execution manager child actor to start
     // and executors to register with the execution manager
     cmActor ! SubmitStages("topology", stageList.toList)
-    Thread.sleep(2000)
+    Thread.sleep(500)
 
     try {
       // ask the clusterManager if registrations happened for topology
       val f = cmActor.ask(GetRegisteredExecutors("topology"))(1 seconds).mapTo[ExecutorList]
       val registeredExecutors = Await.result(f, 1 seconds)
-      assertResult(1) {
-        registeredExecutors.executors.size
-      }
+      registeredExecutors.executors.size should equal (1)
     }
     finally {
       // shutdown clean
-      ClusterManager.shutdown()
-      Executor.shutdown()
+      println("shutdown executor systems")
+      cmShutdown()
+      shutdownTasks(env)
     }
   }
 
   "Multiple Executors" should "register with cluster manager on startup" in {
+    val env = EtherdEnv.get
+
     // build stages
     val stageList = mutable.ListBuffer.empty[Stage]
-    val filterSPN = new FilterKeysSPN("topology", List("#badata"))
     val passThrough = new PassThroughSPN("topology")
-    passThrough.sink(List(filterSPN))
+    passThrough.sink(new FilterKeysSPN("topology", List("#badata")))
     passThrough.buildStages(stageList)
 
-    assertResult(2) {
-      stageList.toList.size
-    }
+    stageList.toList.size should equal (2)
 
     // cluster manager system
     val cmActor = ClusterManager.start()
@@ -85,33 +81,30 @@ class ActorSpec extends UnitSpec {
       // ask the clusterManager if registrations happened for topology
       val f = cmActor.ask(GetRegisteredExecutors("topology"))(1 seconds).mapTo[ExecutorList]
       val registeredExecutors = Await.result(f, 1 seconds)
-      assertResult(2) {
-        registeredExecutors.executors.size
-      }
+      registeredExecutors.executors.size should equal (2)
     }
     finally {
       // shutdown clean
-      ClusterManager.shutdown()
-      Executor.shutdown()
+      cmShutdown()
+      shutdownTasks(env)
     }
   }
 
-  "it" should "when spawned by multiple topologies register with cluster manager on startup" in {
+  "it" should "when spawned by multiple topologies should register with cluster manager on startup" in {
+    val env = EtherdEnv.get
+
     val stageList1 = mutable.ListBuffer.empty[Stage]
+    val passThrough1 = new PassThroughSPN("topology")
+    passThrough1.sink(new FilterKeysSPN("topology", List("#badata")))
+    passThrough1.buildStages(stageList1)
+
     val stageList2 = mutable.ListBuffer.empty[Stage]
-    val filterSPN = new FilterKeysSPN("topology", List("#badata"))
-    val passThrough = new PassThroughSPN("topology")
-    passThrough.sink(List(filterSPN))
-    passThrough.buildStages(stageList1)
-    passThrough.buildStages(stageList2)
+    val passThrough2 = new PassThroughSPN("topology1")
+    passThrough2.sink(new FilterKeysSPN("topology1", List("#badata")))
+    passThrough2.buildStages(stageList2)
 
-    assertResult(2) {
-      stageList1.toList.size
-    }
-
-    assertResult(2) {
-      stageList2.toList.size
-    }
+    stageList1.toList.size should equal (2)
+    stageList2.toList.size should equal (2)
 
     // cluster manager system
     val cmActor = ClusterManager.start()
@@ -126,21 +119,17 @@ class ActorSpec extends UnitSpec {
       // ask the clusterManager if registrations happened for topology
       var f = cmActor.ask(GetRegisteredExecutors("topology"))(1 seconds).mapTo[ExecutorList]
       var registeredExecutors = Await.result(f, 1 seconds)
-      assertResult(2) {
-        registeredExecutors.executors.size
-      }
+      registeredExecutors.executors.size should equal (2)
 
       // ask the clusterManager if registrations happened for topology
       f = cmActor.ask(GetRegisteredExecutors("topology1"))(1 seconds).mapTo[ExecutorList]
       registeredExecutors = Await.result(f, 1 seconds)
-      assertResult(2) {
-        registeredExecutors.executors.size
-      }
+      registeredExecutors.executors.size should equal (2)
     }
     finally {
       // shutdown clean
-      ClusterManager.shutdown()
-      Executor.shutdown()
+      cmShutdown()
+      shutdownTasks(env)
     }
   }
 }

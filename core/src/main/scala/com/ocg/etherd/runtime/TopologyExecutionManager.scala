@@ -17,23 +17,13 @@ class TopologyExecutionManager(topologyName: String,
   val scheduler = this.env.getScheduler
   val stageIdInc = new AtomicInteger(1)
   val topologyExecutors = mutable.ListBuffer.empty[ExecutorData]
-
-
-  def scheduleStages(stages: List[Stage]) = {
-    stages.foreach { stage => {
-      val stageId = this.stageIdInc.getAndIncrement
-      stage.setStageId(stageId)
-      stage.setTopologyId(topologyName)
-      stage.setTopologyExecutionManagerActorUrl(topologyExecutionManagerActorUrl)
-      log.info(s"Submitting Stage $stageId to scheduler. Topology: $topologyName")
-      this.env.getScheduler.submit(stage.getTasks)
-    }
-    }
-  }
+  val stageIdStageMap = mutable.Map.empty[Int, Stage]
+  var executionState = RuntimeState.Init
 
   def receive = {
-
-    case ScheduleStages(stages: List[Stage]) => {
+    case ScheduleStages(stages: List[Stage]) => synchronized {
+      assert(this.executionState != RuntimeState.Scheduled)
+      this.executionState = RuntimeState.Scheduled
       this.scheduleStages(stages)
     }
 
@@ -41,18 +31,39 @@ class TopologyExecutionManager(topologyName: String,
       val executorid = executorData.executorId
       log.info(s"Received Executor registration: $executorid for topology $topologyName")
       this.topologyExecutors += executorData
+      // ship the stage to the executor
+      def shipStage() = {
+        log.info("Checking for stageid:  " + executorData.stageId.toString)
+        this.stageIdStageMap.get(executorData.stageId) match {
+          case Some(stage) => sender ! RuntimeMessages.ExecuteStage(stage)
+          case None =>  {
+            log.error("We should not be in this state")
+            assert(false, "We should not be in this state")
+          }
+        }
+      }
+
+      shipStage()
     }
+
     case GetRegisteredExecutors(topologyName: String) => {
       sender ! ExecutorList(this.topologyExecutors.toList)
     }
 
-    case _ => log.info("Unknown Message received")
+    case _ => log.error("Unknown Message received")
   }
-}
 
-object TopologyExecutionManager {
+  private def scheduleStages(stages: List[Stage]): Unit = {
+    stages.foreach { stage => {
+      val stageId = this.stageIdInc.getAndIncrement
+      stage.setStageId(stageId)
+      stage.setTopologyId(topologyName)
+      stage.setTopologyExecutionManagerActorUrl(topologyExecutionManagerActorUrl)
+      this.stageIdStageMap += stageId -> stage
+      log.info(s"Submitting Stage $stageId to scheduler. Topology: $topologyName")
 
-  def apply(topologyName: String, topologyExecutionManagerActorUrl: String): TopologyExecutionManager = {
-    new TopologyExecutionManager(topologyName, topologyExecutionManagerActorUrl)
+      this.env.getScheduler.submit(stage.buildTasks)
+    }
+    }
   }
 }

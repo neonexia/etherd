@@ -12,8 +12,8 @@ lazy val root = project.in(file(".")).aggregate(core)
 lazy val core = project.settings(
       libraryDependencies += "org.fluentd" % "fluent-logger" % "0.2.10",
       libraryDependencies += "net.sf.jopt-simple" % "jopt-simple" % "3.2",
-      libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.7.7",
-      libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.7",
+      libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.0.13",
+      libraryDependencies += "ch.qos.logback" % "logback-core" % "1.0.13",
       libraryDependencies += "com.101tec" % "zkclient" % "0.4",
       libraryDependencies += "com.yammer.metrics" % "metrics-core" % "2.2.0",
       libraryDependencies += "com.yammer.metrics" % "metrics-annotation" % "2.2.0",
@@ -24,6 +24,6 @@ lazy val core = project.settings(
       libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.2.2",
       libraryDependencies += "com.typesafe.akka" % "akka-actor_2.10" % "2.3.8",
       libraryDependencies += "com.typesafe.akka" %% "akka-remote" % "2.3.8",
-      libraryDependencies += "com.typesafe" % "config" % "1.2.1"
+      libraryDependencies += "com.typesafe" % "config" % "1.2.1",
+      libraryDependencies += "com.typesafe.akka" % "akka-slf4j_2.10" % "2.3.8"
  )
-

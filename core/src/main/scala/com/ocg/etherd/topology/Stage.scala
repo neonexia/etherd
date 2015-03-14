@@ -3,10 +3,12 @@ package com.ocg.etherd.topology
 import com.ocg.etherd.runtime.scheduler.{ResourceAsk, SchedulableTask}
 import com.ocg.etherd.spn.SPN
 
-class Stage(spn: SPN) {
+class Stage(spn: SPN) extends Serializable {
   var stageId: Option[Int] = None
   var topologyId: Option[String] = None
   var topologyExecutionManagerActorUrl: Option[String] = None
+
+  def underlying = this.spn
 
   def setStageId(id: Int) = stageId = Some(id)
 
@@ -20,19 +22,13 @@ class Stage(spn: SPN) {
 
   def getTopologyId = this.topologyId
 
-  def getTasks: Iterator[SchedulableTask[Stage]] = {
-     List(new SchedulableTask[Stage](this, new ResourceAsk(1,1))).iterator
+  def buildTasks: Iterator[SchedulableTask[StageSchedulingInfo]] = {
+    val schedulingInfo = StageSchedulingInfo(this.getStageId.get, this.getTopologyId.get, this.getTopologyExecutionManagerActorUrl.get)
+    val resourceAsk = new ResourceAsk(1, 1)
+    List(new SchedulableTask[StageSchedulingInfo](schedulingInfo, resourceAsk)).iterator
   }
 }
 
-class StageExecutionContext() {
-  def waitForCompletion() = {
-    this.wait()
-  }
-
-  def signalComplete() = {
-    this.notifyAll()
-  }
-}
+case class StageSchedulingInfo(stageId: Int, topologyId: String, topologyExecutionManagerActorUrl: String)
 
 

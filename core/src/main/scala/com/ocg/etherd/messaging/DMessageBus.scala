@@ -1,6 +1,6 @@
 package com.ocg.etherd.messaging
 
-import com.ocg.etherd.streams.{WriteableEventStream, ReadableEventStream}
+import com.ocg.etherd.streams.{WritableEventStream, ReadableEventStream}
 
 /**
  * Abstracts out a distributed messaging queue for isolation between multiple stages
@@ -13,11 +13,11 @@ import com.ocg.etherd.streams.{WriteableEventStream, ReadableEventStream}
  * - logging and monitoring listener subscriptions
  */
 
-trait  DMessageBus {
+trait DMessageBus {
 
   def buildStream(topic: String): ReadableEventStream
 
-  def buildWriteOnlyStream(topic: String) : WriteableEventStream
+  def buildWriteOnlyStream(topic: String) : WritableEventStream
 }
 
 

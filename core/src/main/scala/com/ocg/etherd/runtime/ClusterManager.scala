@@ -24,6 +24,7 @@ class ClusterManager(clusterManagerActorUrlBase: String) extends Actor {
 
   def receive = {
     case SubmitStages(topologyName: String, stages: List[Stage]) => synchronized {
+      println("Received Message SubmitStages")
       this.topologyManagersMap.get(topologyName) match {
         case Some(actorRef) => {
           log.info("topology already executing. Ignoring request")
@@ -46,6 +47,7 @@ class ClusterManager(clusterManagerActorUrlBase: String) extends Actor {
       }
     }
     case GetRegisteredExecutors(topologyName: String) => {
+      println("Received message GetRegisteredExecutors for ")
       this.topologyManagersMap.get(topologyName) match {
         case Some(actorRef) => {
           log.info("await result from executionActor")
@@ -60,19 +62,21 @@ class ClusterManager(clusterManagerActorUrlBase: String) extends Actor {
 }
 
 object ClusterManager {
+  val hostname = java.net.InetAddress.getLocalHost.getCanonicalHostName
+  val clusterManagerSystemName = "clusterManagerSystem"
+  val clusterManagerRootActorName = "etherdClusterManager"
+  val clusterManagerHost = "127.0.0.1"
+  val cmSystemPort = 8181
+  val clusterManagerActorUrlBase = s"akka.tcp://$clusterManagerSystemName@$clusterManagerHost:$cmSystemPort/user/$clusterManagerRootActorName"
   var cmSystem: Option[ActorSystem]= None
 
-  def start() = synchronized {
-    val hostname = java.net.InetAddress.getLocalHost.getCanonicalHostName
-    val cmSystemPort = 8282
-    val clusterManagerSystemName = "clusterManagerSystem"
-    val clusterManagerRootActorName = "etherdClusterManager"
-    val clusterManagerHost = "127.0.0.1"
+  def clusterManagerActorUrl = {
+    clusterManagerActorUrlBase
+  }
 
+  def start(): ActorRef = synchronized {
     cmSystem = Some(ActorUtils.buildActorSystem(s"$clusterManagerSystemName", cmSystemPort))
-    val clusterManagerActorUrlBase = s"akka.tcp://$clusterManagerSystemName@$clusterManagerHost:$cmSystemPort/user/$clusterManagerRootActorName"
-    val cmActor = ActorUtils.buildClusterManagerActor(cmSystem.get, clusterManagerActorUrlBase, clusterManagerRootActorName)
-    cmActor
+    ActorUtils.buildClusterManagerActor(cmSystem.get, clusterManagerActorUrlBase, clusterManagerRootActorName)
   }
 
   def shutdown() = {

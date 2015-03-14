@@ -2,22 +2,26 @@ package com.ocg.etherd.runtime.scheduler
 
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
-
 import scala.collection.mutable.ListBuffer
 
+import com.ocg.etherd.Logging
+
 /**
+ * Scheduler base class for Resource manager specific concrete classes
  */
-private[etherd] abstract class Scheduler {
+private[etherd] abstract class Scheduler extends Logging {
   val submittedTaskQueue = new ConcurrentLinkedQueue[SchedulableTask[_]]()
+  type ReviveOffersType = () => Unit
 
   def getPendingTasks = this.submittedTaskQueue
 
   def submit(tasks: Iterator[SchedulableTask[_]]): Unit = {
+    logInfo("Received tasks for scheduling")
     tasks.foreach { task => this.submittedTaskQueue.offer(task)}
     this.reviveOffers()
   }
 
-  def consumeOfferedResources(offeredResource: ClusterResource): ListBuffer[SchedulableTask[_]] = {
+  protected def getCandidateTasks(offeredResource: ClusterResource): ListBuffer[SchedulableTask[_]] = {
     var schedulableTasks = new ListBuffer[SchedulableTask[_]]()
     val it = this.submittedTaskQueue.iterator
 
@@ -39,6 +43,8 @@ private[etherd] abstract class Scheduler {
   }
 
   def reviveOffers(): Unit
+
+  def shutdownTasks(): Unit
 }
 
 class ResourceAsk(cores: Int, memory: Int) {

@@ -1,15 +1,16 @@
 package com.ocg.etherd
 
-import com.ocg.etherd.runtime.{Executor, ClusterManager, TopologyExecutionManager}
-import com.ocg.etherd.topology.Stage
-import com.typesafe.config.{Config, ConfigFactory}
+import scala.concurrent.Await
+import scala.concurrent.duration._
+import com.typesafe.config.ConfigFactory
 import akka.actor._
-import akka.event.Logging
+import com.ocg.etherd.runtime.{Executor, ClusterManager, TopologyExecutionManager}
+import com.ocg.etherd.topology.StageSchedulingInfo
 
-object ActorUtils {
+object ActorUtils extends Logging{
 
   def buildActorSystem(systemName: String, port: Int): ActorSystem = {
-    println(s"buildActorSystem with name $systemName")
+    logInfo(s"buildActorSystem with name $systemName")
     val confFile = new java.io.File(getClass.getResource("/application.conf").getPath)
     val config = ConfigFactory.parseString(s"akka.remote.netty.tcp.port=$port").withFallback(ConfigFactory.parseFile(confFile))
     ActorSystem(systemName, config)
@@ -20,13 +21,16 @@ object ActorUtils {
   }
 
   def buildExecutionManagerActor(context: ActorContext, topologyName: String, clusterManagerActorUrl: String, actorName: String): ActorRef = {
-    context.actorOf(Props(TopologyExecutionManager(topologyName, clusterManagerActorUrl)), name=actorName)
+    context.actorOf(Props(new TopologyExecutionManager(topologyName, clusterManagerActorUrl)), name=actorName)
   }
 
-  def buildExecutorActor(executorId: String, host:String, port: Int,
-                         exSystem: ActorSystem, topologyName: String,
-                         topologyExecutionManagerActorUrl: String, actorName: String): ActorRef = {
-    println(s"buildExecutorActor: Creating an executor actor $executorId")
-    exSystem.actorOf(Props(Executor(executorId, host, port, topologyName, exSystem.actorSelection(topologyExecutionManagerActorUrl))), name = actorName)
+  def buildExecutorActor(exSystem: ActorSystem, executorId: String, stageSchedulingInfo: StageSchedulingInfo, host:String, port: Int): ActorRef = {
+    logInfo(s"buildExecutorActor: Creating an executor actor $executorId")
+    exSystem.actorOf(Props(new Executor(executorId, stageSchedulingInfo:StageSchedulingInfo,
+                           host, port, exSystem.actorSelection(stageSchedulingInfo.topologyExecutionManagerActorUrl))), name = executorId)
+  }
+
+  def resolveActor(actorSelection: ActorSelection): ActorRef = {
+    Await.result[ActorRef](actorSelection.resolveOne()(akka.util.Timeout.intToTimeout(1)), 1 seconds)
   }
 }

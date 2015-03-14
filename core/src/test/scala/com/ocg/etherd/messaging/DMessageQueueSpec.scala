@@ -96,7 +96,7 @@ class DMessageQueueSpec extends UnitSpec {
     })
 
     wstream.init(0)
-    this.simulateProducer(wstream, 10)
+    this.produceEvents(wstream, 10)
 
     Thread.sleep(1000)
 
@@ -129,7 +129,7 @@ class DMessageQueueSpec extends UnitSpec {
 
     // write to partition 0 only
     wstream0.init(0)
-    this.simulateProducer(wstream0, 25)
+    this.produceEvents(wstream0, 25)
 
     Thread.sleep(1000)
 
@@ -154,7 +154,7 @@ class DMessageQueueSpec extends UnitSpec {
       mstream1.getBackingQueue.get == wstream1.getBackingQueue.get
     }
 
-    this.simulateProducer(wstream1, 12)
+    this.produceEvents(wstream1, 12)
 
     Thread.sleep(1000)
 

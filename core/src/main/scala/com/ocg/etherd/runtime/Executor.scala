@@ -4,52 +4,56 @@ import akka.actor.{ActorRef, ActorSystem, Actor, ActorSelection}
 import akka.event.Logging
 import com.ocg.etherd.ActorUtils
 import com.ocg.etherd.runtime.scheduler.SchedulableTask
-import com.ocg.etherd.topology.Stage
+import com.ocg.etherd.topology.{StageSchedulingInfo, Stage}
 import RuntimeMessages._
 
 import scala.util.Random
 
-class Executor(executorId: String, host:String, port: Int,
-               topologyName:String, topologyExecutionManagerActor: ActorSelection) extends Actor  {
-  val log = Logging(context.system, this)
-  println(s"ExecutorId: $executorId. Sending registration to execution manager")
-  this.topologyExecutionManagerActor ! RegisterExecutor(topologyName, ExecutorData(executorId, 0, host, port))
+class Executor(executorId: String, stageSchedulingInfo:StageSchedulingInfo,
+               host:String, port: Int, topologyExecutionManagerActor: ActorSelection) extends Actor  {
+  val log = Logging(context.system, executorId)
+  var runtimeState = RuntimeState.Init
+
+  override def preStart() = {
+    this.runtimeState = RuntimeState.Init
+    log.info(s"ExecutorId: $executorId. Sending registration to execution manager")
+    this.topologyExecutionManagerActor ! RegisterExecutor(stageSchedulingInfo.topologyId, ExecutorData(executorId, stageSchedulingInfo.stageId, host, port))
+  }
 
   def receive = {
-    case RuntimeMessages.ExecuteStage(topologyName: String, stage: Stage) => {
-      log.info("Received ExecuteStage message")
+
+    case ExecuteStage(stage: Stage) => synchronized {
+      assert(this.runtimeState != RuntimeState.Scheduled)
+      this.runtimeState = RuntimeState.Scheduled
+
+      val stageId = stage.stageId.get
+      log.info(s"Executor: $executorId. Received ExecuteStage with stageId $stageId")
+      assert(stageId==this.stageSchedulingInfo.stageId, "We should get the same stageId that we registered with")
+      StageExecutionContext(stage).run()
     }
-    case _ => log.info("")
+
+    case _ => log.error("Unknown message received")
   }
 }
 
 object Executor {
-  var actorSystem: Option[ActorSystem] = None
 
-  def apply(executorId: String, host:String, port: Int,
-            topologyName:String, topologyExecutionManagerActor: ActorSelection): Executor = {
-    new Executor(executorId, host, port, topologyName, topologyExecutionManagerActor)
-  }
-
-  def start(schedulable: SchedulableTask[_]): ActorRef = synchronized  {
-    val stage = schedulable.asInstanceOf[SchedulableTask[Stage]].getTaskInfo
+  def startNew(schedulable: SchedulableTask[_]): ActorSystem = synchronized  {
+    val stageScheduleInfo = schedulable.asInstanceOf[SchedulableTask[StageSchedulingInfo]].getTaskInfo
+    val topologyExecutionManagerActorUrl = stageScheduleInfo.topologyExecutionManagerActorUrl
+    val topologyName = stageScheduleInfo.topologyId
+    val stageId = stageScheduleInfo.stageId
     val randomPort = 9000 + Random.nextInt(500)
     val hostname = java.net.InetAddress.getLocalHost.getCanonicalHostName
-    val stageId = stage.getStageId.get
-    val topologyName = stage.getTopologyId.get
+
     val hostnameCleanedup = hostname.replace('.', '-' )
     val executorId = s"$topologyName-$stageId-$hostnameCleanedup-$randomPort"
 
-    actorSystem = Some(ActorUtils.buildActorSystem(s"executorSystem-$executorId", randomPort))
-    val topologyExecutionManagerActorUrl = stage.getTopologyExecutionManagerActorUrl.get
-    println(s"Execution Manager Url: $topologyExecutionManagerActorUrl")
-    ActorUtils.buildExecutorActor(executorId, hostname, randomPort, actorSystem.get, topologyName, topologyExecutionManagerActorUrl, executorId)
-  }
+    val actorSystem = ActorUtils.buildActorSystem(s"executorSystem-$executorId", randomPort)
 
-  def shutdown(): Unit = {
-    actorSystem.map { system =>
-      system.shutdown()
-    }
+    println(s"Execution Manager Url: $topologyExecutionManagerActorUrl")
+    ActorUtils.buildExecutorActor(actorSystem, executorId, stageScheduleInfo, hostname, randomPort)
+    actorSystem
   }
 }
 

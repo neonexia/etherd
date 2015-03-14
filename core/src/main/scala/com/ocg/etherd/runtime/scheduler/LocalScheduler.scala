@@ -1,15 +1,20 @@
 package com.ocg.etherd.runtime.scheduler
 
 import java.util.concurrent.{Executors, ExecutorService}
+import scala.collection.mutable
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import akka.actor.ActorSystem
 import com.ocg.etherd.runtime.Executor
 import com.ocg.etherd.topology.Stage
 
 /**
  *
  */
-class LocalScheduler(cores: Int, memoryFraction: Int) extends Scheduler {
+private[etherd] class LocalScheduler(cores: Int, memoryFraction: Int) extends Scheduler {
   val hostResource = ClusterResource(maxCores, maxMemory, "localhost")
   val pool: ExecutorService = Executors.newFixedThreadPool(maxCores)
+  val executorList =  mutable.ListBuffer.empty[ActorSystem]
 
   def this() = this(0, 60)
 
@@ -29,17 +34,21 @@ class LocalScheduler(cores: Int, memoryFraction: Int) extends Scheduler {
 
   def reviveOffers(): Unit = {
     println("Revive offers")
-    val schedulableTasks = this.consumeOfferedResources(hostResource)
+    val schedulableTasks = this.getCandidateTasks(hostResource)
     schedulableTasks.foreach { schedulable => {
         try {
-          println("Thread pool...starting executor")
-          Executor.start(schedulable)
-          println("Executor started. Thread ending")
+          println("Local thread pool...starting executor")
+          val executor = Executor.startNew(schedulable)
+          executorList += executor
         }
         catch {
           case e: Exception => println(s"Exception when starting executor: $e")
         }
       }
     }
+  }
+
+  def shutdownTasks(): Unit = {
+    this.executorList.foreach(executor => executor.shutdown())
   }
 }

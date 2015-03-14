@@ -13,195 +13,163 @@ import scala.collection.mutable
  */
 class SPNSpec extends UnitSpec {
   "A pass through spn" should "pass all events from an input stream to output stream" in {
-    val q = mutable.Queue[Event]()
-    val istream = EventStream.sampleRange("default", 10)
-    val wstream = EventStream.sampleWritablestream(q)
-    val spn = ingest(wstream, istream)
-    spn.beginProcessStreams()
+    // final destination sink
+    val destinationStore = buildDummyDestinationStream("final_destination")
 
-    assertResult(10) {
-      q.size
-    }
+    // create a pass spn and configure it to send the events to the final_destination
+    val pass = buildPass
+    pass.attachInputStreamSpec(new ReadableEventStreamSpec("input_stream1"))
+    pass.attachExternalOutputStreamSpec(new WritableEventStreamSpec("final_destination"))
+    pass.beginProcessStreams(0)
+
+    //simulate some events on the input stream
+    produceEvents("input_stream1", 10)
+    Thread.sleep(500)
+
+    // test if the events made it to the destination
+    destinationStore.size should equal (10)
   }
 
-  it should "pass all events from all 2 streams to output stream" in {
-    val q = mutable.Queue[Event]()
-    val istream1 = EventStream.sampleRange("default", 10)
-    val istream2 = EventStream.sampleRange("default", 10)
-    val wstream = EventStream.sampleWritablestream(q)
-    val spn = ingest(wstream, istream1, istream2)
-    spn.beginProcessStreams()
-    assertResult(20) {
-      q.size
-    }
+  it should "when ingested with 2 streams should pass all events to output stream" in {
+    // final destination sink
+    val destinationStore = buildDummyDestinationStream("final_destination")
+
+    // create a pass spn and configure it to send the events to the final_destination
+    val pass = buildPass
+    pass.attachInputStreamSpec(new ReadableEventStreamSpec("input_stream1"))
+    pass.attachInputStreamSpec(new ReadableEventStreamSpec("input_stream2"))
+    pass.attachExternalOutputStreamSpec(new WritableEventStreamSpec("final_destination"))
+    pass.beginProcessStreams(0)
+
+    //simulate some events on the input stream
+    produceEvents("input_stream1", 10)
+    produceEvents("input_stream2", 10)
+    Thread.sleep(500)
+
+    // test if the events made it to the destination
+    destinationStore.size should equal (20)
   }
 
   it should "when combined with 2 sinked Passthrough  SPN's should fan out all events to both the SPN's" in {
-    // final desitination sink
-    val q = new ConcurrentLinkedQueue[Event]()
-    val wstream = EventStream.sampleWritablestream(q)
+    // final destination sink
+    val destinationStore = buildDummyDestinationStream("final_destination")
 
-    // create some streams on the bus. This is where we will ingest data into
-    val bus = new LocalDMessageBus()
-    val default_mstream = bus.buildStream("default")
+    // create a pass spn and configure it to send the events to the final_destination
+    val pass = buildPass
+    pass.attachInputStreamSpec(new ReadableEventStreamSpec("input_stream1"))
+    pass.attachInputStreamSpec(new ReadableEventStreamSpec("input_stream2"))
 
-    // create a simple toplogy with one pass spn sinking to 2 pass spns.
-    // first spn subscribes to the bus stream
-    val spn = pass
-    spn.attachInputStream(default_mstream)
-    val sink1spn = pass
-    sink1spn.setdefaultOutputStream(wstream)
-    val sink2spn = pass
-    sink2spn.setdefaultOutputStream(wstream)
-    spn.sink(List(sink1spn, sink2spn))
+    val pass2 = buildPass
+    val pass3 = buildPass
+    pass2.attachExternalOutputStreamSpec(new WritableEventStreamSpec("final_destination"))
+    pass3.attachExternalOutputStreamSpec(new WritableEventStreamSpec("final_destination"))
+    pass.sink(List(pass2, pass3).iterator)
 
-    // start the topology. The topology will subscribe to the bus for events and process them
-    spn.beginProcessStreams(0)
-    sink1spn.beginProcessStreams(0)
-    sink2spn.beginProcessStreams(0)
+    // call begin when all is setup
+    pass.beginProcessStreams(0)
+    pass2.beginProcessStreams(0)
+    pass3.beginProcessStreams(0)
 
-    // ingest some data into the bus
-    val default_wstream = bus.buildWriteOnlyStream("default")
-    default_wstream.init(0)
-    simulateProducer(default_wstream, 20)
+    //simulate some events on the input stream
+    produceEvents("input_stream1", 10)
+    produceEvents("input_stream2", 10)
+    Thread.sleep(500)
 
-    Thread.sleep(1000)
-
-    assertResult(40) {
-      q.size
-    }
+    // test if the events made it to the destination
+    destinationStore.size should equal (40)
   }
 
-  it should "build a single stage" in {
-    val spn = ingest()
+  it should "when combined with a sinked filter SPN's should filter out events to the final destination" in {
+    // final destination sink
+    val destinationStore = buildDummyDestinationStream("final_destination")
+
+    // create a pass spn and configure it to send the events to the final_destination
+    val pass = buildPass
+    pass.attachInputStreamSpec(new ReadableEventStreamSpec("input_stream1"))
+    pass.attachInputStreamSpec(new ReadableEventStreamSpec("input_stream2"))
+
+    val pass2 = buildPass
+    val filter = buildFilter("5")
+    pass2.attachExternalOutputStreamSpec(new WritableEventStreamSpec("final_destination"))
+    filter.attachExternalOutputStreamSpec(new WritableEventStreamSpec("final_destination"))
+    pass.sink(List(pass2, filter).iterator)
+
+    // call begin when all is setup
+    pass.beginProcessStreams(0)
+    pass2.beginProcessStreams(0)
+    filter.beginProcessStreams(0)
+
+    //simulate some events on the input stream
+    produceEvents("input_stream1", 10)
+    produceEvents("input_stream2", 10)
+    Thread.sleep(500)
+
+    // test if the events made it to the destination
+    destinationStore.size should equal (38)
+  }
+
+  "A 2 level chain with pass/map-filter-filter-sink" should "pass filtered events" in {
+    // final destination sink
+    val destinationStore = buildDummyDestinationStream("final_destination")
+
+    // create a pass spn and configure it to send the events to the final_destination
+    val ingestion = buildPass
+    val firstFilter = buildFilter("2")
+    val filterLast = buildFilter("5")
+    val flatMap = ingestion.flatMap(ev => List(ev, ev).iterator)
+    flatMap.sink(List(firstFilter).iterator)
+    firstFilter.sink(List(filterLast).iterator)
+
+
+    ingestion.attachInputStreamSpec(new ReadableEventStreamSpec("input_stream1"))
+    filterLast.attachExternalOutputStreamSpec(new WritableEventStreamSpec("final_destination"))
+
+    // call begin processing on all staged streams
+    ingestion.beginProcessStreams(0)
+    firstFilter.beginProcessStreams(0)
+    filterLast.beginProcessStreams(0)
+
+    //simulate some events on the input stream
+    produceEvents("input_stream1", 10)
+    Thread.sleep(500)
+
+    // test if the events made it to the destination
+    destinationStore.size should equal (16)
+  }
+
+  "Linked SPN's" should "build a only 1 stage" in {
+    val ingestion = buildPass
+    val flatMap = ingestion.flatMap ( ev => List(ev, ev).iterator)
+
     var finalStageList = mutable.ListBuffer.empty[Stage]
-    spn.buildStages(finalStageList)
-    assertResult(1) {
-      finalStageList.size
-    }
+    ingestion.buildStages(finalStageList)
+    finalStageList.size should equal (1)
   }
 
-  it should "if combined with MappedSPN build a single stage" in {
-    val spn = ingest()
-    spn.map {ev => ev}
+  "Linked SPN's" should "when chained with 2 sinks should produce 3 stages" in {
+    // create a pass spn and configure it to send the events to the final_destination
+    val ingestion = buildPass
+    val firstFilter = buildFilter("2")
+    val filterLast = buildFilter("5")
+    val flatMap = ingestion.flatMap(ev => List(ev, ev).iterator)
+    flatMap.sink(List(firstFilter).iterator)
+    firstFilter.sink(List(filterLast)iterator)
+
     var finalStageList = mutable.ListBuffer.empty[Stage]
-    spn.buildStages(finalStageList)
-    assertResult(1) {
-      finalStageList.size
-    }
+    ingestion.buildStages(finalStageList)
+    finalStageList.size should equal (3)
   }
 
-  it should "when sink into 2 SPN's build 3 stages" in {
-    val spn = ingest()
-    val spn1 = ingest()
-    val spn2 = ingest()
-    spn.sink(List[SPN](spn1, spn2))
+  "Linked SPN's" should "fanned out to 2 sinks should produce 3 stages" in {
+    // create a pass spn and configure it to send the events to the final_destination
+    val ingestion = buildPass
+    val firstFilter = buildFilter("2")
+    val filterLast = buildFilter("5")
+    val flatMap = ingestion.flatMap(ev => List(ev, ev).iterator)
+    flatMap.sink(List(firstFilter, filterLast).iterator)
+
     var finalStageList = mutable.ListBuffer.empty[Stage]
-    spn.buildStages(finalStageList)
-    assertResult(3) {
-      finalStageList.size
-    }
-  }
-
-
-  "A FilterSPN" should "filter events with keys #baddata to the output stream" in {
-    val inq = mutable.Queue[Event]()
-    inq.enqueue(Event("gooddata", 1))
-    inq.enqueue(Event("#baddata", 2))
-    inq.enqueue(Event("gooddata", 5))
-    inq.enqueue(Event("#baddata", 4))
-    inq.enqueue(Event("#baddata", 6))
-    val istream = EventStream.sampleRange("default", inq.iterator)
-
-    val outq = mutable.Queue[Event]()
-    val wstream = EventStream.sampleWritablestream(outq)
-
-    val spn = ingest(wstream, istream)
-    val filterSpn = spn.filterByKeys(List("#baddata"))
-
-    spn.beginProcessStreams()
-
-    assertResult(2) {
-      outq.size
-    }
-  }
-
-  it should "be able to handle empty input streams" in {
-    val inq = mutable.Queue[Event]()
-    val istream = EventStream.sampleRange("default", inq.iterator)
-
-    val outq = mutable.Queue[Event]()
-    val wstream = EventStream.sampleWritablestream(outq)
-    val spn = ingest(wstream, istream)
-    spn.filterByKeys(List("#baddata"))
-    spn.beginProcessStreams()
-    assertResult(0) {outq.size}
-  }
-
-  it should "be able to handle empty output streams" in {
-    val inq = mutable.Queue[Event]()
-    inq.enqueue(Event("#baddata", 1))
-    inq.enqueue(Event("#baddata", 2))
-    inq.enqueue(Event("#baddata", 5))
-    inq.enqueue(Event("#baddata", 4))
-    val istream = EventStream.sampleRange("default", inq.iterator)
-
-    val outq = mutable.Queue[Event]()
-    val wstream = EventStream.sampleWritablestream(outq)
-    val spn = ingest(wstream, istream)
-    val filterSpn = spn.filterByKeys(List("#baddata"))
-    spn.beginProcessStreams()
-    assertResult(0) {outq.size}
-  }
-
-  it should "when combined with 1 linked and 1 sinked Filter SPN's and should apply both filters" in {
-    // final desitination sink
-    val q = new ConcurrentLinkedQueue[Event]()
-    val wstream = EventStream.sampleWritablestream(q)
-
-    val q2 = new ConcurrentLinkedQueue[Event]()
-    val w2stream = EventStream.sampleWritablestream(q2)
-
-    // create some streams on the bus. This is where we will ingest data into
-    val bus = new LocalDMessageBus()
-    val default_wstream = bus.buildWriteOnlyStream("default") // --> entry point stream where we will ingest data into
-    val default_mstream = bus.buildStream("default") // --> same as above but we will read data from
-    default_wstream.init(0)
-
-    ///// build the topology
-
-    val env = EtherdEnv.get  // --> env
-
-    // create 2 sink spns
-    val f2spn = new FilterKeysSPN("topology", List("#secondFilter"))
-    f2spn.setdefaultOutputStream(wstream)
-    val p2spn = new PassThroughSPN("topology")
-    p2spn.setdefaultOutputStream(w2stream)
-
-    val ingestSpn = new PassThroughSPN("topology") // --> ingestion SPN
-    ingestSpn.attachInputStream(default_mstream)
-    ingestSpn.filterByKeys(List("#firstFilter")).sink(List(f2spn, p2spn)) // --->> define the topology
-
-    // --> start the stream processing on all spns
-    f2spn.beginProcessStreams(0)
-    p2spn.beginProcessStreams(0)
-    ingestSpn.beginProcessStreams(0)
-
-    // now push some events through the
-    new Thread {
-      override def run(): Unit ={
-
-        for (i <- 0 until 20) {
-          default_wstream.push(Event("#cleandata", i))
-        }
-        default_wstream.push(Event("#firstFilter", 20 ))
-        default_wstream.push(Event("#secondFilter", 21))
-      }
-    }.start()
-
-    Thread.sleep(1000)
-    assertResult(20) {
-      q.size
-    }
+    ingestion.buildStages(finalStageList)
+    finalStageList.size should equal (3)
   }
 }

@@ -12,6 +12,7 @@ class PassThroughSPN(topologyName: String, delay:Int = 0) extends SPN(SPN.newId(
     if (delay > 0) {
       Thread.sleep(delay)
     }
+    //println("PassThroughSPN. linkorsink")
     this.linkOrSinkDefault(topic, event)
    }
 }
