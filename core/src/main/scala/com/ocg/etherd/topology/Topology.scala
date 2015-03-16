@@ -6,7 +6,7 @@ import com.ocg.etherd.{ActorUtils, EtherdEnv}
 import com.ocg.etherd.runtime.RuntimeMessages.SubmitStages
 import scala.collection.mutable
 import com.ocg.etherd.streams.{ReadableEventStreamSpec, WritableEventStreamSpec}
-import com.ocg.etherd.spn.{PassThroughSPN, SPN}
+import com.ocg.etherd.spn.{Ingest, SPN}
 
 /**
  * A Topology is a specification of how streams and processing nodes should be composed to process events
@@ -20,7 +20,7 @@ import com.ocg.etherd.spn.{PassThroughSPN, SPN}
 class Topology(topologyName: String) {
   var topologySubmitted = false
   val env = EtherdEnv.get
-  val ingestSpn = new PassThroughSPN(this.topologyName)
+  val ingestSpn = new Ingest(this.topologyName)
 
   def ingest(istreamSpec: ReadableEventStreamSpec) : SPN = {
     this.ingestSpn.attachInputStreamSpec(istreamSpec)

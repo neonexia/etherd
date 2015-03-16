@@ -13,7 +13,7 @@ import akka.actor.{Actor, ActorRef, ActorSystem, ActorSelection}
 import akka.actor.Props
 import akka.pattern.ask
 import akka.event.Logging
-import com.ocg.etherd.spn.{FilterKeysSPN, PassThroughSPN}
+import com.ocg.etherd.spn.{FilterKeysSPN, Ingest}
 
 class ActorSpec extends UnitSpec {
   "ClusterManager" should "be able to start and respond to requests" in {
@@ -34,7 +34,7 @@ class ActorSpec extends UnitSpec {
 
     // build stages
     val stageList = mutable.ListBuffer.empty[Stage]
-    new PassThroughSPN("topology").buildStages(stageList)
+    new Ingest("topology").buildStages(stageList)
 
     stageList.toList.size should equal (1)
 
@@ -64,7 +64,7 @@ class ActorSpec extends UnitSpec {
 
     // build stages
     val stageList = mutable.ListBuffer.empty[Stage]
-    val passThrough = new PassThroughSPN("topology")
+    val passThrough = new Ingest("topology")
     passThrough.sink(new FilterKeysSPN("topology", List("#badata")))
     passThrough.buildStages(stageList)
 
@@ -94,12 +94,12 @@ class ActorSpec extends UnitSpec {
     val env = EtherdEnv.get
 
     val stageList1 = mutable.ListBuffer.empty[Stage]
-    val passThrough1 = new PassThroughSPN("topology")
+    val passThrough1 = new Ingest("topology")
     passThrough1.sink(new FilterKeysSPN("topology", List("#badata")))
     passThrough1.buildStages(stageList1)
 
     val stageList2 = mutable.ListBuffer.empty[Stage]
-    val passThrough2 = new PassThroughSPN("topology1")
+    val passThrough2 = new Ingest("topology1")
     passThrough2.sink(new FilterKeysSPN("topology1", List("#badata")))
     passThrough2.buildStages(stageList2)
 

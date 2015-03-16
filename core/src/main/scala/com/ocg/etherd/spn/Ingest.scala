@@ -4,15 +4,15 @@ import com.ocg.etherd.EtherdEnv
 import com.ocg.etherd.streams._
 
 /**
- * Pass through
+ * The processing node in the topology. Just passes the events through
  */
-class PassThroughSPN(topologyName: String, delay:Int = 0) extends SPN(SPN.newId(), topologyName) {
+class Ingest(topologyName: String, delay:Int = 0, id: Int=SPN.newId()) extends SPN(id, topologyName) {
 
   override def processEvent(topic: String, event: Event): Unit = {
     if (delay > 0) {
       Thread.sleep(delay)
     }
-    //println("PassThroughSPN. linkorsink")
+    //println("Ingest. linkorsink")
     this.linkOrSinkDefault(topic, event)
    }
 }

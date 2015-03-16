@@ -6,14 +6,14 @@ import com.ocg.etherd.streams.Event
 
 /**
  */
-class MapSPN(topologyName: String, f: Event => Event ) extends SPN(SPN.newId(), topologyName) {
+class MapSPN(topologyName: String, mapper: Event => Event, id:Int = SPN.newId()) extends SPN(id, topologyName) {
   override def processEvent(topic: String, event: Event): Unit = {
-    this.linkOrSinkDefault(topic, f(event))
+    this.linkOrSinkDefault(topic, mapper(event))
   }
 }
 
-class FlatMapSPN(topologyName: String, f: Event => Iterator[Event] ) extends SPN(SPN.newId(), topologyName) {
+class FlatMapSPN(topologyName: String, mapper: Event => Iterator[Event], id:Int = SPN.newId() ) extends SPN(id, topologyName) {
   override def processEvent(topic: String, event: Event): Unit = {
-    this.linkOrSinkDefault(topic, f(event))
+    this.linkOrSinkDefault(topic, mapper(event))
   }
 }

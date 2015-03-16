@@ -7,7 +7,7 @@ import com.ocg.etherd.runtime.ClusterManager
 import com.ocg.etherd.runtime.scheduler.{ResourceAsk, SchedulableTask}
 import org.scalatest._
 import com.ocg.etherd.streams._
-import com.ocg.etherd.spn.{FlatMapSPN, FilterKeysSPN, PassThroughSPN, SPN}
+import com.ocg.etherd.spn.{FlatMapSPN, FilterKeysSPN, Ingest, SPN}
 import com.ocg.etherd.EtherdEnv
 
 /**
@@ -16,7 +16,7 @@ import com.ocg.etherd.EtherdEnv
 abstract class UnitSpec extends FlatSpec with Matchers with
 OptionValues with Inside with Inspectors with BeforeAndAfterEachTestData
 {
-  def buildPass: SPN = new PassThroughSPN("topology")
+  def buildPass: SPN = new Ingest("topology")
 
   def buildFilter(filter: String): SPN = new FilterKeysSPN("topology", List(filter))
 

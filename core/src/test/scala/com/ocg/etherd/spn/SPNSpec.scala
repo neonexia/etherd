@@ -108,7 +108,7 @@ class SPNSpec extends UnitSpec {
     destinationStore.size should equal (38)
   }
 
-  "A 2 level chain with pass/map-filter-filter-sink" should "pass filtered events" in {
+  "A 2 level chain with ingest/map-filter-filter-destination" should "pass filtered events" in {
     // final destination sink
     val destinationStore = buildDummyDestinationStream("final_destination")
 
@@ -146,7 +146,7 @@ class SPNSpec extends UnitSpec {
     finalStageList.size should equal (1)
   }
 
-  "Linked SPN's" should "when chained with 2 sinks should produce 3 stages" in {
+  it should "when chained with 2 sinks should produce 3 stages" in {
     // create a pass spn and configure it to send the events to the final_destination
     val ingestion = buildPass
     val firstFilter = buildFilter("2")
@@ -160,13 +160,26 @@ class SPNSpec extends UnitSpec {
     finalStageList.size should equal (3)
   }
 
-  "Linked SPN's" should "fanned out to 2 sinks should produce 3 stages" in {
+  it should "fanned out to 2 sinks should produce 3 stages" in {
     // create a pass spn and configure it to send the events to the final_destination
     val ingestion = buildPass
     val firstFilter = buildFilter("2")
     val filterLast = buildFilter("5")
     val flatMap = ingestion.flatMap(ev => List(ev, ev).iterator)
     flatMap.sink(List(firstFilter, filterLast).iterator)
+
+    var finalStageList = mutable.ListBuffer.empty[Stage]
+    ingestion.buildStages(finalStageList)
+    finalStageList.size should equal (3)
+  }
+
+  it should "with ingest/map/filter-filter-filter-sink produce 3 stages" in {
+    // create a pass spn and configure it to send the events to the final_destination
+    val ingestion = buildPass
+    ingestion.flatMap(ev => List(ev, ev).iterator)
+      .filterByKeys(List("#baddata"))   //ingest/flatMap/filter
+      .sink(buildFilter("2")) //- filter
+      .sink(buildFilter("5")) // -filter
 
     var finalStageList = mutable.ListBuffer.empty[Stage]
     ingestion.buildStages(finalStageList)

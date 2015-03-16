@@ -21,7 +21,6 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
   private var externalOstreams: mutable.ListBuffer[WritableEventStream] = mutable.ListBuffer.empty[WritableEventStream]
   private var defaultOutStreamSpec: Option[WritableEventStreamSpec] = None
   private var defaultOutStream: Option[WritableEventStream] = None
-  //private var currentState = SPNState.Stopped
 
   def getId = this.spnId
 
@@ -35,7 +34,6 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
    * The partition
    */
   def beginProcessStreams(partition: Int = 0): Unit = {
-    //assert(this.currentState == SPNState.Stopped)
     //println("SPN: begin process streams")
 
     // Build all the streams from their specs
@@ -90,38 +88,39 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
     }
   }
 
-  final def buildStages(finalStageList: mutable.ListBuffer[Stage]): Unit = {
+  def buildStages(finalStageList: mutable.ListBuffer[Stage]): Unit = {
     finalStageList += new Stage(this)
+    this.buildLinkedStages(finalStageList)
+  }
+
+  private def buildLinkedStages(finalStageList: mutable.ListBuffer[Stage]): Unit = {
     this.linkedSpn match {
-      case Some(spn) => spn.buildSinkedStages(finalStageList)
-      case None => this.buildSinkedStages(finalStageList)
+      case Some(spn) => spn.buildLinkedStages(finalStageList)
+      case None => this.sinkedSPNs.foreach { _.buildStages(finalStageList) }
     }
   }
 
-  private def buildSinkedStages(finalStageList: mutable.ListBuffer[Stage]): Unit = {
-    this.sinkedSPNs.foreach { _.buildStages(finalStageList) }
-  }
-
-  def map(func: Event => Event): MapSPN = {
-    val mapSpn = new MapSPN(this.topologyName, func)
+  def map(func: Event => Event): SPN = {
+    val mapSpn = new MapSPN(this.topologyName, func, this.getId)
     this.setLinkedSPN(mapSpn)
     mapSpn
   }
 
-  def flatMap(func: Event => Iterator[Event]): FlatMapSPN = {
-    val flatMap = new FlatMapSPN(this.topologyName, func)
+  def flatMap(func: Event => Iterator[Event]): SPN = {
+    val flatMap = new FlatMapSPN(this.topologyName, func, this.getId)
     this.setLinkedSPN(flatMap)
     flatMap
   }
 
-  def filterByKeys(keys: List[String]): FilterKeysSPN = {
-    val filterSpn = new FilterKeysSPN(this.topologyName, keys)
+  def filterByKeys(keys: List[String]): SPN = {
+    val filterSpn = new FilterKeysSPN(this.topologyName, keys, this.getId)
     this.setLinkedSPN(filterSpn)
     filterSpn
   }
 
-  def sink(target: SPN): Unit = {
+  def sink(target: SPN): SPN = {
     this.sink(List(target).iterator)
+    target
   }
 
   def sink(targets: Iterator[SPN]): Unit = {
@@ -162,9 +161,7 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
     }
 
     // push to all external output streams
-    this.externalOstreams.foreach { ostream => {
-      ostream.push(events)
-    }}
+    this.externalOstreams.foreach { ostream => ostream.push(events) }
   }
 
   private def getOrBuildDefaultOutputStreamSpec = {
@@ -207,14 +204,11 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
   private def setLinkedSPN(spn: SPN): Unit = {
     this.linkedSpn = Some(spn)
   }
-
-//  object SPNState extends Enumeration {
-//    val Stopped, Running = Value
-//  }
 }
 
 object SPN {
   val spnIdInc = new AtomicInteger(1)
+
   def newId(): Int = {
     this.spnIdInc.getAndIncrement
   }
