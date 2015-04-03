@@ -47,7 +47,7 @@ class ClusterManager(clusterManagerActorUrlBase: String) extends Actor {
       }
     }
     case GetRegisteredExecutors(topologyName: String) => {
-      println("Received message GetRegisteredExecutors for ")
+      println(s"Received message GetRegisteredExecutors for topology $topologyName")
       this.topologyManagersMap.get(topologyName) match {
         case Some(actorRef) => {
           log.info("await result from executionActor")

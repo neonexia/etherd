@@ -44,7 +44,7 @@ class LocalExecutionSpec extends UnitSpec {
 
     try {
       // ask the clusterManager if executor registrations are successful
-      val f = cmActor.ask(GetRegisteredExecutors("topology"))(1 seconds).mapTo[ExecutorList]
+      val f = cmActor.ask(GetRegisteredExecutors("testtopology"))(1 seconds).mapTo[ExecutorList]
       val registeredExecutors = Await.result(f, 1 seconds)
       registeredExecutors.executors.size should equal (1)
 
@@ -66,46 +66,72 @@ class LocalExecutionSpec extends UnitSpec {
     }
    }
 
-  it should "with multiple stages keep processing events to the destination output stream until stopped" in {
-    // start the cluster manager
-    val cmActor = ClusterManager.start()
+//  it should "with multiple stages keep processing events to the destination output stream until stopped" in {
+//    // start the cluster manager
+//    val cmActor = ClusterManager.start()
+//
+//    // final destination sink
+//    val destinationStore = buildDummyDestinationStream("final_destination")
+//
+//    // build the topology and run it.
+//    val tp = Topology("testtopology")
+//    tp.ingest(new ReadableEventStreamSpec("input_stream1"))
+//      .map(e => Event(e.getKey, e.getRecord, e.getOrder))
+//      .filterByKeys(List("#baddata"))
+//      .sink(buildPass)
+//      .sink(new WritableEventStreamSpec("final_destination"))
+//    tp.run()
+//
+//    // wait for executors to start and the topology to process events
+//    Thread.sleep(2000)
+//
+//    try {
+//      // ask the clusterManager if executor registrations are successful
+//      val f = cmActor.ask(GetRegisteredExecutors("topology"))(1 seconds).mapTo[ExecutorList]
+//      val registeredExecutors = Await.result(f, 1 seconds)
+//      registeredExecutors.executors.size should equal (2)
+//
+//      // write events into the ingestion stream
+//      produceEvents("input_stream1", 10)
+//      Thread.sleep(100)
+//      //lets hope the events make it to the destination
+//      destinationStore.size should equal (10)
+//
+//      // write more events the ingestion stream
+//      produceEvents("input_stream1", 10)
+//      Thread.sleep(100)
+//      //lets hope again we have the new events make it to the destination
+//      destinationStore.size should equal (20)
+//    }
+//    finally{
+//      cmShutdown()
+//      shutdownTasks(EtherdEnv.get)
+//    }
+//  }
 
-    // final destination sink
-    val destinationStore = buildDummyDestinationStream("final_destination")
-
-    // build the topology and run it.
-    val tp = Topology("testtopology")
-    tp.ingest(new ReadableEventStreamSpec("input_stream1"))
-      .map(e => Event(e.getKey, e.getRecord, e.getOrder))
-      .filterByKeys(List("#baddata"))
-      .sink(buildPass)
-      .sink(new WritableEventStreamSpec("final_destination"))
-    tp.run()
-
-    // wait for executors to start and the topology to process events
-    Thread.sleep(2000)
-
-    try {
-      // ask the clusterManager if executor registrations are successful
-      val f = cmActor.ask(GetRegisteredExecutors("topology"))(1 seconds).mapTo[ExecutorList]
-      val registeredExecutors = Await.result(f, 1 seconds)
-      registeredExecutors.executors.size should equal (2)
-
-      // write events into the ingestion stream
-      produceEvents("input_stream1", 10)
-      Thread.sleep(100)
-      //lets hope the events make it to the destination
-      destinationStore.size should equal (10)
-
-      // write more events the ingestion stream
-      produceEvents("input_stream1", 10)
-      Thread.sleep(100)
-      //lets hope again we have the new events make it to the destination
-      destinationStore.size should equal (20)
-    }
-    finally{
-      cmShutdown()
-      shutdownTasks(EtherdEnv.get)
-    }
-  }
+//  "2 topologies" should "each with multiple stages when run in parallel should process events" in {
+//    // start the cluster manager
+//    val cmActor = ClusterManager.start()
+//    // final destination sink
+//    val destinationStore = buildDummyDestinationStream("final_destination")
+//
+//    // build the topology and run it.
+//    val tp = Topology("testtopology")
+//    tp.ingest(new ReadableEventStreamSpec("input_stream1"))
+//      .map(e => Event(e.getKey, e.getRecord, e.getOrder))
+//      .filterByKeys(List("#baddata"))
+//      .sink(buildPass)
+//      .sink(new WritableEventStreamSpec("final_destination"))
+//    tp.run()
+//
+//    // build another topology and run it.
+//    val tp2 = Topology("testtopology2")
+//    tp2.ingest(new ReadableEventStreamSpec("input_stream2"))
+//      .map(e => Event(e.getKey, e.getRecord, e.getOrder))
+//      .filterByKeys(List("#baddata"))
+//      .sink(buildPass)
+//      .sink(new WritableEventStreamSpec("final_destination"))
+//    tp2.run()
+//
+//  }
 }

@@ -27,45 +27,10 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
   def processEvent(topic: String, event: Event): Unit
 
   /**
-   * This is called by the execution engine on the cluster node when the topology begins executing
-   * Tasks here are
-   *   --initialize and subscribe to all input streams
-   *   --initialize output streams
-   * The partition
+   * Appends a new input stream specification to this node.
+   * @param streamSpec
+   * @return
    */
-  def beginProcessStreams(partition: Int = 0): Unit = {
-    //println("SPN: begin process streams")
-
-    // Build all the streams from their specs
-    this.reBuildStreamsFromSpecs()
-
-    //Init default output stream
-    this.defaultOutStream.map { stream => {
-      // println("SPN: beginProcessStreams. Init default outstream " + stream.topic)
-      stream.init(partition)
-    }
-    }
-
-    // init all external output streams
-    this.externalOstreams.foreach { stream => stream.init(partition)}
-
-    // init all input streams. SPN should be ready to process events once init completes
-    this.istreams.foreach { stream => {
-      // println("SPN: beginProcessStreams. Calling init for input stream:" + stream.topic.toString)
-      stream.subscribe((topic: String, event: Event) => {
-        //println("SPN base class received event")
-        processEvent(topic, event)
-        true
-      })
-      stream.init(partition)
-    }
-    }
-
-    this.linkedSpn.map { spn => spn.beginProcessStreams(partition)}
-
-    //this.currentState = SPNState.Running
-  }
-
   def attachInputStreamSpec(streamSpec: ReadableEventStreamSpec) = {
     this.istreamsSpec += streamSpec
   }
@@ -74,6 +39,11 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
     streamSpecs.foreach { istreamSpec => this.attachInputStreamSpec(istreamSpec)}
   }
 
+  /**
+   * Appends a new external output stream specification to this SPN.
+   * This SPN's(stage) output events will be routed to this stream
+   * @param streamSpec
+   */
   def attachExternalOutputStreamSpec(streamSpec: WritableEventStreamSpec): Unit = {
     this.linkedSpn match {
       case Some(spn) => spn.attachExternalOutputStreamSpec(streamSpec)
@@ -86,11 +56,6 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
       case Some(spn) => spn.attachExternalOutputStreamSpecs(streamSpecs)
       case None => streamSpecs.foreach { ostreamSpec => this.attachExternalOutputStreamSpec(ostreamSpec)}
     }
-  }
-
-  def buildStages(finalStageList: mutable.ListBuffer[Stage]): Unit = {
-    finalStageList += new Stage(this)
-    this.buildLinkedStages(finalStageList)
   }
 
   private def buildLinkedStages(finalStageList: mutable.ListBuffer[Stage]): Unit = {
@@ -118,6 +83,12 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
     filterSpn
   }
 
+  /**
+   * Sink output events to the target SPN.
+   * Every sinked SPN will create a new stage in the processing pipeline
+   * @param target
+   * @return
+   */
   def sink(target: SPN): SPN = {
     this.sink(List(target).iterator)
     target
@@ -135,7 +106,7 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
     }
   }
 
-  final def sink(streamSpec: WritableEventStreamSpec): Unit = {
+  def sink(streamSpec: WritableEventStreamSpec): Unit = {
     this.linkedSpn match {
       case Some(spn) => spn.sink(streamSpec)
       case None => this.externalOstreamsSpec += streamSpec
@@ -162,6 +133,11 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
 
     // push to all external output streams
     this.externalOstreams.foreach { ostream => ostream.push(events) }
+  }
+
+  private[etherd] def buildStages(finalStageList: mutable.ListBuffer[Stage]): Unit = {
+    finalStageList += new Stage(this)
+    this.buildLinkedStages(finalStageList)
   }
 
   private def getOrBuildDefaultOutputStreamSpec = {
@@ -203,6 +179,46 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
 
   private def setLinkedSPN(spn: SPN): Unit = {
     this.linkedSpn = Some(spn)
+  }
+
+  /**
+   * This is called by the execution engine on the cluster node when the topology begins executing
+   * Tasks here are
+   *   --initialize and subscribe to all input streams
+   *   --initialize output streams
+   * The partition
+   */
+  private[etherd] def beginProcessStreams(partition: Int = 0): Unit = {
+    //println("SPN: begin process streams")
+
+    // Build all the streams from their specs
+    this.reBuildStreamsFromSpecs()
+
+    //Init default output stream
+    this.defaultOutStream.map { stream => {
+      // println("SPN: beginProcessStreams. Init default outstream " + stream.topic)
+      stream.init(partition)
+    }
+    }
+
+    // init all external output streams
+    this.externalOstreams.foreach { stream => stream.init(partition)}
+
+    // init all input streams. SPN should be ready to process events once init completes
+    this.istreams.foreach { stream => {
+      // println("SPN: beginProcessStreams. Calling init for input stream:" + stream.topic.toString)
+      stream.subscribe((topic: String, event: Event) => {
+        //println("SPN base class received event")
+        processEvent(topic, event)
+        true
+      })
+      stream.init(partition)
+    }
+    }
+
+    this.linkedSpn.map { spn => spn.beginProcessStreams(partition)}
+
+    //this.currentState = SPNState.Running
   }
 }
 

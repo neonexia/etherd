@@ -6,7 +6,7 @@ import com.ocg.etherd.streams.Event
 /**
  *
  */
-class FilterKeysSPN(topologyName: String, keys: List[String]) extends SPN(SPN.newId(), topologyName){
+class FilterKeysSPN(topologyName: String, keys: List[String], id: Int=SPN.newId()) extends SPN(id, topologyName){
 
   override def processEvent(topic: String, event: Event ): Unit = {
     if (!this.filter(event)) {

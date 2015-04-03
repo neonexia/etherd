@@ -9,13 +9,15 @@ import com.ocg.etherd.streams.{ReadableEventStreamSpec, WritableEventStreamSpec}
 import com.ocg.etherd.spn.{Ingest, SPN}
 
 /**
- * A Topology is a specification of how streams and processing nodes should be composed to process events
+ * A Topology is a specification of how streams and processing nodes be composed to process events.
+ * Topologies can be further composed together to form higher-order topologies.
  * It exposes user facing API's to express computation that will eventually run on a cluster
- * by the scheduler.
- * Topologies can be further composed together to form higher-order topologies. When a topology is run, internally:
+ * by the scheduler. When a topology is run the internal flow is
  * 1. Build stages
  * 2. Setup event listeners for tracking topology execution
  * 3. Submit the stages to the cluster manager for execution
+ * 4. Cluster Manager calls te schduler to allocate resources
+ * 5. Execute stages as tasks on those resources
  */
 class Topology(topologyName: String) {
   var topologySubmitted = false
@@ -43,7 +45,7 @@ class Topology(topologyName: String) {
       stageList.toList
     }
     println("Number of stages is:" + stages.size)
-    this.env.getClusterManagerRef ! SubmitStages("topology", stages)
+    this.env.getClusterManagerRef ! SubmitStages(this.topologyName, stages)
   }
 }
 
