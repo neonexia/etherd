@@ -10,7 +10,7 @@ class FilterKeysSPN(topologyName: String, keys: List[String], id: Int=SPN.newId(
 
   override def processEvent(topic: String, event: Event ): Unit = {
     if (!this.filter(event)) {
-      this.linkOrSinkDefault(topic, event)
+      this.emit(topic, event)
     }
   }
 

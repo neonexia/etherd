@@ -13,6 +13,6 @@ class Ingest(topologyName: String, delay:Int = 0, id: Int=SPN.newId()) extends S
       Thread.sleep(delay)
     }
     //println("Ingest. linkorsink")
-    this.linkOrSinkDefault(topic, event)
+    this.emit(topic, event)
    }
 }

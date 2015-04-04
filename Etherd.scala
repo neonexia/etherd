@@ -58,11 +58,11 @@ object Etherd {
   class KafkaStreamReader(partitions: Int, id: String) {
     val executorService = Executors.newFixedThreadPool(partitions)
     private val consumerConnect = kafka.consumer.Consumer.create(this.createConsumerConfig)
-    val topicCount = Map(("test", partitions))
-    val streams = consumerConnect.createMessageStreams(topicCount).get("test").get
-    this.beginReceving(streams)
+    val topicPatritionsMap = Map(("test", partitions))
+    val streams = consumerConnect.createMessageStreams(topicPatritionsMap).get("test").get
+    this.beginReceiving(streams)
 
-    private def beginReceving(streams: List[KafkaStream[Array[Byte],Array[Byte]]]): Unit = {
+    private def beginReceiving(streams: List[KafkaStream[Array[Byte],Array[Byte]]]): Unit = {
       println("Consumer: Inside begin receive")
       for {pCount <- 0 to streams.size
            stream <- streams} {

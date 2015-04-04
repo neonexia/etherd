@@ -58,13 +58,6 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
     }
   }
 
-  private def buildLinkedStages(finalStageList: mutable.ListBuffer[Stage]): Unit = {
-    this.linkedSpn match {
-      case Some(spn) => spn.buildLinkedStages(finalStageList)
-      case None => this.sinkedSPNs.foreach { _.buildStages(finalStageList) }
-    }
-  }
-
   def map(func: Event => Event): SPN = {
     val mapSpn = new MapSPN(this.topologyName, func, this.getId)
     this.setLinkedSPN(mapSpn)
@@ -113,7 +106,7 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
     }
   }
 
-  protected def linkOrSinkDefault(topic: String, event: Event) = {
+  protected def emit(topic: String, event: Event) = {
     this.linkedSpn match {
       case Some(spn) => spn.processEvent(topic, event)
       case None => this.defaultOutStream.map { stream => stream.push(event) }
@@ -125,7 +118,7 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
     }}
   }
 
-  protected def linkOrSinkDefault(topic: String, events: Iterator[Event]) = {
+  protected def emit(topic: String, events: Iterator[Event]) = {
     this.linkedSpn match {
       case Some(linkedSPN) => events.foreach { event => linkedSPN.processEvent(topic, event) }
       case None => this.defaultOutStream.map { stream => stream.push(events) }
@@ -133,6 +126,13 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
 
     // push to all external output streams
     this.externalOstreams.foreach { ostream => ostream.push(events) }
+  }
+
+  private def buildLinkedStages(finalStageList: mutable.ListBuffer[Stage]): Unit = {
+    this.linkedSpn match {
+      case Some(spn) => spn.buildLinkedStages(finalStageList)
+      case None => this.sinkedSPNs.foreach { _.buildStages(finalStageList) }
+    }
   }
 
   private[etherd] def buildStages(finalStageList: mutable.ListBuffer[Stage]): Unit = {
