@@ -1,0 +1,21 @@
+//task wrapper(type: Wrapper) {
+//    gradleVersion = '2.3'
+//}
+
+allprojects {
+    group=project_group
+    version=project_version
+
+    apply plugin: "scala"
+    apply plugin: "idea"
+
+    repositories {
+        mavenCentral()
+        mavenLocal()
+    }
+
+    dependencies {
+        compile 'org.scala-lang:scala-library:2.11.4'
+    }
+
+}

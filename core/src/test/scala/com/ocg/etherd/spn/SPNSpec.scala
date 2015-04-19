@@ -177,7 +177,7 @@ class SPNSpec extends UnitSpec {
     // create a pass spn and configure it to send the events to the final_destination
     val ingestion = buildPass
     ingestion.flatMap(ev => List(ev, ev).iterator)
-      .filterByKeys(List("#baddata"))   //ingest/flatMap/filter
+      .dropByKeys(List("#baddata"))   //ingest/flatMap/filter
       .sink(buildFilter("2")) //- filter
       .sink(buildFilter("5")) // -filter
 

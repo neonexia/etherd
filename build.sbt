@@ -5,7 +5,7 @@ name := "etherd"
 
 version := "1.0"
 
-scalaVersion := "2.10.3"
+scalaVersion := "2.11.4"
 
 lazy val root = project.in(file(".")).aggregate(core)
 
@@ -21,9 +21,9 @@ lazy val core = project.settings(
       libraryDependencies += "org.apache.hadoop" % "hadoop-yarn-api" % "2.2.0",
       libraryDependencies += "org.apache.hadoop" % "hadoop-yarn-client" % "2.2.0",
       libraryDependencies += "org.apache.hadoop" % "hadoop-yarn-common" % "2.2.0",
-      libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.2.2",
-      libraryDependencies += "com.typesafe.akka" % "akka-actor_2.10" % "2.3.8",
-      libraryDependencies += "com.typesafe.akka" %% "akka-remote" % "2.3.8",
+      libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.2",
+      libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.3.9",
+      libraryDependencies += "com.typesafe.akka" %% "akka-remote" % "2.3.9",
       libraryDependencies += "com.typesafe" % "config" % "1.2.1",
-      libraryDependencies += "com.typesafe.akka" % "akka-slf4j_2.10" % "2.3.8"
+      libraryDependencies += "com.typesafe.akka" %% "akka-slf4j" % "2.3.9"
  )

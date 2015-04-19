@@ -59,19 +59,25 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
   }
 
   def map(func: Event => Event): SPN = {
-    val mapSpn = new MapSPN(this.topologyName, func, this.getId)
+    val mapSpn = EventOps.map(this.topologyName, func, this.getId)
     this.setLinkedSPN(mapSpn)
     mapSpn
   }
 
   def flatMap(func: Event => Iterator[Event]): SPN = {
-    val flatMap = new FlatMapSPN(this.topologyName, func, this.getId)
+    val flatMap = EventOps.flatMap(this.topologyName, func, this.getId)
     this.setLinkedSPN(flatMap)
     flatMap
   }
 
-  def filterByKeys(keys: List[String]): SPN = {
-    val filterSpn = new FilterKeysSPN(this.topologyName, keys, this.getId)
+  def selectByKeys(keys: List[String]): SPN = {
+    val filterSpn = EventOps.selectByKeys(this.topologyName, keys, this.getId)
+    this.setLinkedSPN(filterSpn)
+    filterSpn
+  }
+
+  def dropByKeys(keys: List[String]): SPN = {
+    val filterSpn = EventOps.dropByKeys(this.topologyName, keys, this.getId)
     this.setLinkedSPN(filterSpn)
     filterSpn
   }

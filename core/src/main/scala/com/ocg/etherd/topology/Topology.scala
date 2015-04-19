@@ -1,12 +1,11 @@
 package com.ocg.etherd.topology
 
 import java.util.concurrent.atomic.AtomicInteger
-
-import com.ocg.etherd.{ActorUtils, EtherdEnv}
-import com.ocg.etherd.runtime.RuntimeMessages.SubmitStages
 import scala.collection.mutable
+import com.ocg.etherd.EtherdEnv
+import com.ocg.etherd.spn.{SPN, EventOps}
+import com.ocg.etherd.runtime.RuntimeMessages.SubmitStages
 import com.ocg.etherd.streams.{ReadableEventStreamSpec, WritableEventStreamSpec}
-import com.ocg.etherd.spn.{Ingest, SPN}
 
 /**
  * A Topology is a specification of how streams and processing nodes be composed to process events.
@@ -22,7 +21,7 @@ import com.ocg.etherd.spn.{Ingest, SPN}
 class Topology(topologyName: String) {
   var topologySubmitted = false
   val env = EtherdEnv.get
-  val ingestSpn = new Ingest(this.topologyName)
+  val ingestSpn = EventOps.pass(this.topologyName)
 
   def ingest(istreamSpec: ReadableEventStreamSpec) : SPN = {
     this.ingestSpn.attachInputStreamSpec(istreamSpec)

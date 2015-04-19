@@ -94,7 +94,7 @@ class YarnAM(yarnConf: YarnConfiguration, queue: String) {
   }
 }
 
-package object YarnAM extends App {
+object YarnAM extends App {
   val conf = new Configuration()
   conf.addResource(new Path("/Users/loaner/hadoop-2.2.0/etc/hadoop/hdfs-site.xml"))
   conf.addResource(new Path("/Users/loaner/hadoop-2.2.0/etc/hadoop/core-site.xml"))

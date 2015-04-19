@@ -34,8 +34,8 @@ class LocalExecutionSpec extends UnitSpec {
 
     // build the topology and run it.
     val tp = Topology("testtopology")
-    tp.ingest(new ReadableEventStreamSpec("input_stream1")).map(e => Event(e.getKey, e.getRecord, e.getOrder))
-      .filterByKeys(List("#baddata"))
+    tp.ingest(new ReadableEventStreamSpec("input_stream1")).map(e => Event(e.getKey, e.getRecord.getRaw, e.getOrder))
+      .dropByKeys(List("#baddata"))
       .sink(new WritableEventStreamSpec("final_destination"))
     tp.run()
 
