@@ -1,6 +1,7 @@
 package com.ocg.etherd
 
 import akka.actor.{ActorSystem, ActorSelection}
+import com.ocg.etherd.runtime.akkautils.Utils
 import com.ocg.etherd.messaging.{LocalDMessageBusStreamBuilder, DMessageBus, LocalDMessageBus}
 import com.ocg.etherd.runtime.ClusterManager
 import com.ocg.etherd.runtime.scheduler.{Scheduler, LocalScheduler}
@@ -39,7 +40,7 @@ class EtherdEnv(configuration: EtherdConf) {
   }
 
   private def buildActorSystem = {
-    ActorUtils.buildActorSystem("etherdClient", 7000 + Random.nextInt(500))
+    Utils.buildActorSystem("etherdClient", 7000 + Random.nextInt(500))
   }
 }
 

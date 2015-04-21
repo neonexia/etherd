@@ -1,13 +1,16 @@
-package com.ocg.etherd
+package com.ocg.etherd.runtime.akkautils
+
+import akka.actor._
+import com.ocg.etherd.Logging
+import com.ocg.etherd.runtime.executor.{ExecutorWorker, Executor}
+import com.ocg.etherd.runtime.{StageExecutionContext, ClusterManager, TopologyExecutionManager}
+import com.ocg.etherd.topology.StageSchedulingInfo
+import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import com.typesafe.config.ConfigFactory
-import akka.actor._
-import com.ocg.etherd.runtime.{Executor, ClusterManager, TopologyExecutionManager}
-import com.ocg.etherd.topology.StageSchedulingInfo
 
-object ActorUtils extends Logging{
+object Utils extends Logging{
 
   def buildActorSystem(systemName: String, port: Int): ActorSystem = {
     logInfo(s"buildActorSystem with name $systemName")
@@ -25,12 +28,21 @@ object ActorUtils extends Logging{
   }
 
   def buildExecutorActor(exSystem: ActorSystem, executorId: String, stageSchedulingInfo: StageSchedulingInfo, host:String, port: Int): ActorRef = {
-    logInfo(s"buildExecutorActor: Creating an executor actor $executorId")
+    logInfo(s"buildExecutorActor: Creating supervisor executor actor $executorId")
     exSystem.actorOf(Props(new Executor(executorId, stageSchedulingInfo:StageSchedulingInfo,
                            host, port, exSystem.actorSelection(stageSchedulingInfo.topologyExecutionManagerActorUrl))), name = executorId)
   }
 
+  def buildExecutorWorkerActor(context:ActorContext, workerId:Int, executorId: String, executionContext: StageExecutionContext): ActorRef = {
+    logInfo(s"buildExecutorWorkerActor: Creating executor worker actor with executorId:$executorId and workerId:$workerId")
+    context.actorOf(Props(new ExecutorWorker(workerId, executorId, executionContext)))
+  }
+
   def resolveActor(actorSelection: ActorSelection): ActorRef = {
     Await.result[ActorRef](actorSelection.resolveOne()(akka.util.Timeout.intToTimeout(1)), 1 seconds)
+  }
+
+  def resolveActor(system:ActorSystem, actorPath:String ): ActorRef = {
+    this.resolveActor(system.actorSelection(actorPath))
   }
 }

@@ -5,7 +5,7 @@ import scala.collection.mutable
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import com.ocg.etherd.topology.Stage
-import com.ocg.etherd.{ActorUtils, EtherdEnv}
+import com.ocg.etherd.EtherdEnv
 import com.ocg.etherd.runtime.RuntimeMessages._
 import com.ocg.etherd.testbase.UnitSpec
 import com.typesafe.config.ConfigFactory
@@ -28,6 +28,7 @@ class ActorSpec extends UnitSpec {
     }
     finally {
       cmShutdown()
+      shutdownTasks(EtherdEnv.get)
     }
   }
 
@@ -42,12 +43,13 @@ class ActorSpec extends UnitSpec {
 
     // cluster manager system
     val cmActor = ClusterManager.start()
-    // submit stages and wait for execution manager child actor to start
-    // and executors to register with the execution manager
-    cmActor ! SubmitStages("topology", stageList.toList)
-    Thread.sleep(500)
-
     try {
+      // submit stages and wait for execution manager child actor to start
+      // and executors to register with the execution manager
+      cmActor ! SubmitStages("topology", stageList.toList)
+      Thread.sleep(500)
+
+
       // ask the clusterManager if registrations happened for topology
       val f = cmActor.ask(GetRegisteredExecutors("topology"))(1 seconds).mapTo[ExecutorList]
       val registeredExecutors = Await.result(f, 1 seconds)
@@ -74,12 +76,13 @@ class ActorSpec extends UnitSpec {
 
     // cluster manager system
     val cmActor = ClusterManager.start()
-    // submit stages and wait for execution manager child actor to start
-    // and executors to register with the execution manager
-    cmActor ! SubmitStages("topology", stageList.toList)
-    Thread.sleep(2000)
-
     try {
+      // submit stages and wait for execution manager child actor to start
+      // and executors to register with the execution manager
+      cmActor ! SubmitStages("topology", stageList.toList)
+      Thread.sleep(2000)
+
+
       // ask the clusterManager if registrations happened for topology
       val f = cmActor.ask(GetRegisteredExecutors("topology"))(1 seconds).mapTo[ExecutorList]
       val registeredExecutors = Await.result(f, 1 seconds)
@@ -111,13 +114,14 @@ class ActorSpec extends UnitSpec {
     // cluster manager system
     val cmActor = ClusterManager.start()
 
-    // submit stages and wait for execution manager child actor to start
-    // and executors to register with the execution manager
-    cmActor ! SubmitStages("topology", stageList1.toList)
-    cmActor ! SubmitStages("topology1", stageList2.toList)
-    Thread.sleep(2000)
-
     try {
+      // submit stages and wait for execution manager child actor to start
+      // and executors to register with the execution manager
+      cmActor ! SubmitStages("topology", stageList1.toList)
+      cmActor ! SubmitStages("topology1", stageList2.toList)
+      Thread.sleep(2000)
+
+
       // ask the clusterManager if registrations happened for topology
       var f = cmActor.ask(GetRegisteredExecutors("topology"))(1 seconds).mapTo[ExecutorList]
       var registeredExecutors = Await.result(f, 1 seconds)

@@ -63,7 +63,7 @@ class SPNSpec extends UnitSpec {
     val pass3 = buildPass
     pass2.attachExternalOutputStreamSpec(new WritableEventStreamSpec("final_destination"))
     pass3.attachExternalOutputStreamSpec(new WritableEventStreamSpec("final_destination"))
-    pass.sink(List(pass2, pass3).iterator)
+    pass.split(List(pass2, pass3).iterator)
 
     // call begin when all is setup
     pass.beginProcessStreams(0)
@@ -92,7 +92,7 @@ class SPNSpec extends UnitSpec {
     val filter = buildFilter("5")
     pass2.attachExternalOutputStreamSpec(new WritableEventStreamSpec("final_destination"))
     filter.attachExternalOutputStreamSpec(new WritableEventStreamSpec("final_destination"))
-    pass.sink(List(pass2, filter).iterator)
+    pass.split(List(pass2, filter).iterator)
 
     // call begin when all is setup
     pass.beginProcessStreams(0)
@@ -117,8 +117,8 @@ class SPNSpec extends UnitSpec {
     val firstFilter = buildFilter("2")
     val filterLast = buildFilter("5")
     val flatMap = ingestion.flatMap(ev => List(ev, ev).iterator)
-    flatMap.sink(List(firstFilter).iterator)
-    firstFilter.sink(List(filterLast).iterator)
+    flatMap.split(List(firstFilter).iterator)
+    firstFilter.split(List(filterLast).iterator)
 
 
     ingestion.attachInputStreamSpec(new ReadableEventStreamSpec("input_stream1"))
@@ -152,8 +152,8 @@ class SPNSpec extends UnitSpec {
     val firstFilter = buildFilter("2")
     val filterLast = buildFilter("5")
     val flatMap = ingestion.flatMap(ev => List(ev, ev).iterator)
-    flatMap.sink(List(firstFilter).iterator)
-    firstFilter.sink(List(filterLast)iterator)
+    flatMap.split(List(firstFilter).iterator)
+    firstFilter.split(List(filterLast)iterator)
 
     var finalStageList = mutable.ListBuffer.empty[Stage]
     ingestion.buildStages(finalStageList)
@@ -166,7 +166,7 @@ class SPNSpec extends UnitSpec {
     val firstFilter = buildFilter("2")
     val filterLast = buildFilter("5")
     val flatMap = ingestion.flatMap(ev => List(ev, ev).iterator)
-    flatMap.sink(List(firstFilter, filterLast).iterator)
+    flatMap.split(List(firstFilter, filterLast).iterator)
 
     var finalStageList = mutable.ListBuffer.empty[Stage]
     ingestion.buildStages(finalStageList)

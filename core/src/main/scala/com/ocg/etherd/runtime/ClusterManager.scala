@@ -1,17 +1,13 @@
 package com.ocg.etherd.runtime
 
-import java.util.concurrent.atomic.AtomicInteger
-import com.ocg.etherd.runtime.scheduler.SchedulableTask
-
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import com.typesafe.config.ConfigFactory
 import akka.actor.{Actor, ActorRef, ActorSystem, ActorSelection}
-import akka.actor.Props
 import akka.pattern.ask
 import akka.event.Logging
-import com.ocg.etherd.{ActorUtils, EtherdEnv}
+import com.ocg.etherd.runtime.akkautils.Utils
+import com.ocg.etherd.EtherdEnv
 import com.ocg.etherd.runtime.RuntimeMessages._
 import com.ocg.etherd.topology.Stage
 
@@ -34,7 +30,7 @@ class ClusterManager(clusterManagerActorUrlBase: String) extends Actor {
             log.info(s"Received Submit Stages for topology $topologyName")
             val actorName = s"topologyExecutionManagerActor_$topologyName"
             val executionManagerActorUrl = s"$clusterManagerActorUrlBase/executionManagerActor_$topologyName"
-            val executionManagerActor = ActorUtils.buildExecutionManagerActor(context, topologyName, executionManagerActorUrl, s"executionManagerActor_$topologyName")
+            val executionManagerActor = Utils.buildExecutionManagerActor(context, topologyName, executionManagerActorUrl, s"executionManagerActor_$topologyName")
             topologyManagersMap += topologyName -> executionManagerActor
             executionManagerActor ! ScheduleStages(stages)
           }
@@ -75,8 +71,8 @@ object ClusterManager {
   }
 
   def start(): ActorRef = synchronized {
-    cmSystem = Some(ActorUtils.buildActorSystem(s"$clusterManagerSystemName", cmSystemPort))
-    ActorUtils.buildClusterManagerActor(cmSystem.get, clusterManagerActorUrlBase, clusterManagerRootActorName)
+    cmSystem = Some(Utils.buildActorSystem(s"$clusterManagerSystemName", cmSystemPort))
+    Utils.buildClusterManagerActor(cmSystem.get, clusterManagerActorUrlBase, clusterManagerRootActorName)
   }
 
   def shutdown() = {

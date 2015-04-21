@@ -2,7 +2,7 @@ package com.ocg.etherd.runtime
 
 import com.ocg.etherd.topology.Stage
 
-class StageExecutionContext(stage: Stage) {
+private[etherd] class StageExecutionContext(stage: Stage) {
   var runtimeState = RuntimeState.Init
 
   def run(): Unit = {

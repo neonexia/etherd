@@ -82,20 +82,9 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
     filterSpn
   }
 
-  /**
-   * Sink output events to the target SPN.
-   * Every sinked SPN will create a new stage in the processing pipeline
-   * @param target
-   * @return
-   */
-  def sink(target: SPN): SPN = {
-    this.sink(List(target).iterator)
-    target
-  }
-
-  def sink(targets: Iterator[SPN]): Unit = {
+  def split(targets: Iterator[SPN]): Unit = {
     this.linkedSpn match {
-      case Some(spn) => spn.sink(targets)
+      case Some(spn) => spn.split(targets)
       case None => {
         targets.foreach { target =>
           this.sinkedSPNs += target
@@ -105,11 +94,23 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
     }
   }
 
-  def sink(streamSpec: WritableEventStreamSpec): Unit = {
+  /**
+   * Sink output events to the target SPN.
+   * Every sinked SPN will create a new stage in the processing pipeline
+   * @param target
+   * @return
+   */
+  def sink(target: SPN): SPN = {
+    this.split(List(target).iterator)
+    target
+  }
+
+  def sink(streamSpec: WritableEventStreamSpec): SPN = {
     this.linkedSpn match {
       case Some(spn) => spn.sink(streamSpec)
       case None => this.externalOstreamsSpec += streamSpec
     }
+    this
   }
 
   protected def emit(topic: String, event: Event) = {

@@ -1,11 +1,12 @@
 package com.ocg.etherd.runtime.scheduler
 
 import java.util.concurrent.{Executors, ExecutorService}
+import com.ocg.etherd.runtime.executor.Executor
+
 import scala.collection.mutable
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import akka.actor.ActorSystem
-import com.ocg.etherd.runtime.Executor
 import com.ocg.etherd.topology.Stage
 
 /**
