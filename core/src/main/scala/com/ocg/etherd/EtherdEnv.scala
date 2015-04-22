@@ -45,17 +45,17 @@ class EtherdEnv(configuration: EtherdConf) {
 }
 
 object EtherdEnv {
-  var env = this.buildEnvironment()
+  var env:EtherdEnv = build
 
   def get = {
     env
   }
 
-  def rebuild(): Unit = {
-    this.env = this.buildEnvironment()
+  private[etherd] def rebuild():Unit = {
+    env = build
   }
 
-  private def buildEnvironment() : EtherdEnv = {
+  private def build: EtherdEnv = {
     new EtherdEnv(new EtherdConf())
   }
 }
