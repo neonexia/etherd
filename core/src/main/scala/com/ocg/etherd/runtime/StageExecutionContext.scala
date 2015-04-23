@@ -8,7 +8,6 @@ private[etherd] class StageExecutionContext(stage: Stage) {
   def run(): Unit = {
     assert(this.runtimeState != RuntimeState.Scheduled)
     this.runtimeState = RuntimeState.Scheduled
-    println("StageExecutionContext: beginProcessStreams")
     this.stage.underlying.beginProcessStreams()
   }
 

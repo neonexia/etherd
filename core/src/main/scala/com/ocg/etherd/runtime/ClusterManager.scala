@@ -20,7 +20,7 @@ class ClusterManager(clusterManagerActorUrlBase: String) extends Actor {
 
   def receive = {
     case SubmitStages(topologyName: String, stages: List[Stage]) => synchronized {
-      println("Received Message SubmitStages")
+      log.info("Received Message SubmitStages")
       this.topologyManagersMap.get(topologyName) match {
         case Some(actorRef) => {
           log.info("topology already executing. Ignoring request")
@@ -43,7 +43,7 @@ class ClusterManager(clusterManagerActorUrlBase: String) extends Actor {
       }
     }
     case GetRegisteredExecutors(topologyName: String) => {
-      println(s"Received message GetRegisteredExecutors for topology $topologyName")
+      log.info(s"Received message GetRegisteredExecutors for topology $topologyName")
       this.topologyManagersMap.get(topologyName) match {
         case Some(actorRef) => {
           log.info("await result from executionActor")

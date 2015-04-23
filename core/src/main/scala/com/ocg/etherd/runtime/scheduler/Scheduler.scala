@@ -4,7 +4,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.mutable.ListBuffer
 
-import com.ocg.etherd.Logging
+import com.ocg.etherd.{EtherdEnv, Logging}
 
 /**
  * Scheduler base class for Resource manager specific concrete classes
@@ -16,7 +16,7 @@ private[etherd] abstract class Scheduler extends Logging {
   def getPendingTasks = this.submittedTaskQueue
 
   def submit(tasks: Iterator[SchedulableTask[_]]): Unit = {
-    logInfo("Received tasks for scheduling")
+    logInfo("Submitting tasks for scheduling")
     tasks.foreach { task => this.submittedTaskQueue.offer(task)}
     this.reviveOffers()
   }

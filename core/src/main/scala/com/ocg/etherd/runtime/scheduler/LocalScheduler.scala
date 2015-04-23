@@ -1,6 +1,7 @@
 package com.ocg.etherd.runtime.scheduler
 
 import java.util.concurrent.{Executors, ExecutorService}
+import com.ocg.etherd.EtherdEnv
 import com.ocg.etherd.runtime.executor.Executor
 
 import scala.collection.mutable
@@ -10,7 +11,8 @@ import akka.actor.ActorSystem
 import com.ocg.etherd.topology.Stage
 
 /**
- *
+ * Local scheduler that runs tasks on local thread pool. Unless explicitly specified limits itself to the
+ * number of machine cores and 60% of max available JVM memory(-Xmx)
  */
 private[etherd] class LocalScheduler(cores: Int, memoryFraction: Int) extends Scheduler {
   val hostResource = ClusterResource(maxCores, maxMemory, "localhost")
@@ -34,16 +36,16 @@ private[etherd] class LocalScheduler(cores: Int, memoryFraction: Int) extends Sc
   }
 
   def reviveOffers(): Unit = {
-    println("Revive offers")
+    logInfo("Revive offers")
     val schedulableTasks = this.getCandidateTasks(hostResource)
     schedulableTasks.foreach { schedulable => {
         try {
-          println("Local thread pool...starting executor")
+          logInfo("Local thread pool...starting executor")
           val executor = Executor.startNew(schedulable)
           executorList += executor
         }
         catch {
-          case e: Exception => println(s"Exception when starting executor: $e")
+          case e: Exception => logError(s"Exception when starting executor: $e")
         }
       }
     }

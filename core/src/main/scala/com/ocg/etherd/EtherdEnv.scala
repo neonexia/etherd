@@ -21,7 +21,6 @@ class EtherdEnv(configuration: EtherdConf) {
   def getStreamBuilder: EventStreamBuilder = this.streamBuilder
 
   def getClusterManagerRef: ActorSelection = synchronized {
-    println("Cluster Manager URL:" + ClusterManager.clusterManagerActorUrl)
     this.tpClientActorSystem match {
       case Some(actorSystem) =>  actorSystem.actorSelection(ClusterManager.clusterManagerActorUrl)
       case None =>  {

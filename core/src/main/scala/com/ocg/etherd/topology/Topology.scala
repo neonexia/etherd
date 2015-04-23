@@ -2,7 +2,7 @@ package com.ocg.etherd.topology
 
 import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.mutable
-import com.ocg.etherd.EtherdEnv
+import com.ocg.etherd.{Logging, EtherdEnv}
 import com.ocg.etherd.spn.{SPN, EventOps}
 import com.ocg.etherd.runtime.RuntimeMessages.SubmitStages
 import com.ocg.etherd.streams.{ReadableEventStreamSpec, WritableEventStreamSpec}
@@ -18,7 +18,7 @@ import com.ocg.etherd.streams.{ReadableEventStreamSpec, WritableEventStreamSpec}
  * 4. Cluster Manager calls te schduler to allocate resources
  * 5. Execute stages as tasks on those resources
  */
-class Topology(topologyName: String) {
+class Topology(topologyName: String) extends Logging {
   var topologySubmitted = false
   val env = EtherdEnv.get
   val ingestSpn = EventOps.pass(this.topologyName)
@@ -43,7 +43,7 @@ class Topology(topologyName: String) {
       this.ingestSpn.buildStages(stageList)
       stageList.toList
     }
-    println("Number of stages is:" + stages.size)
+    logInfo(s"Number of stages for topology: $topologyName =" + stages.size)
     this.env.getClusterManagerRef ! SubmitStages(this.topologyName, stages)
   }
 }

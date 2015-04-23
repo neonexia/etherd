@@ -2,7 +2,7 @@ package com.ocg.etherd.spn
 
 import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.mutable
-import com.ocg.etherd.EtherdEnv
+import com.ocg.etherd.{Logging, EtherdEnv}
 import com.ocg.etherd.topology.Stage
 import com.ocg.etherd.streams._
 
@@ -12,7 +12,7 @@ import com.ocg.etherd.streams._
  * eg: JoinSPN, FilterSPN, MapSPN, AggregateSPN(Average, Sum) etc.
  * Each SPN can have 1+ input streams and needs at least one default output stream.
  */
-abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
+abstract class SPN(spnId: Int, topologyName: String) extends Serializable with Logging{
   private var linkedSpn: Option[SPN] = None
   private var sinkedSPNs: mutable.ListBuffer[SPN] = mutable.ListBuffer.empty[SPN]
   private var istreamsSpec: mutable.ListBuffer[ReadableEventStreamSpec] = mutable.ListBuffer.empty[ReadableEventStreamSpec]
@@ -196,14 +196,14 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
    * The partition
    */
   private[etherd] def beginProcessStreams(partition: Int = 0): Unit = {
-    //println("SPN: begin process streams")
+    logInfo(s"SPN-$spnId for topology $topologyName: Begin process streams")
 
     // Build all the streams from their specs
     this.reBuildStreamsFromSpecs()
 
     //Init default output stream
     this.defaultOutStream.map { stream => {
-      // println("SPN: beginProcessStreams. Init default outstream " + stream.topic)
+      logInfo(s"SPN-$spnId for topology $topologyName: Init default outstream:" + stream.topic)
       stream.init(partition)
     }
     }
@@ -213,9 +213,8 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable{
 
     // init all input streams. SPN should be ready to process events once init completes
     this.istreams.foreach { stream => {
-      // println("SPN: beginProcessStreams. Calling init for input stream:" + stream.topic.toString)
+      logInfo(s"SPN-$spnId for topology $topologyName: Calling init for input stream:" + stream.topic.toString)
       stream.subscribe((topic: String, event: Event) => {
-        //println("SPN base class received event")
         processEvent(topic, event)
         true
       })

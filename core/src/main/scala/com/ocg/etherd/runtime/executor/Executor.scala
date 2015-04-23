@@ -28,7 +28,7 @@ private[etherd] class Executor(executorId: String, stageSchedulingInfo:StageSche
   val workerIdInc = new AtomicInteger(1)
   val log = Logging(context.system, executorId)
   val executorActorUrl = self.path.toStringWithAddress(RemoteAddressExtension(context.system).address)
-
+  log.info(s"Starting executor at $executorActorUrl")
 
   /**
    * For now for all exceptions we will just resume and delegate the rest to the parent
@@ -36,10 +36,12 @@ private[etherd] class Executor(executorId: String, stageSchedulingInfo:StageSche
    */
   override val supervisorStrategy = OneForOneStrategy() {
       case _: ActorInitializationException => {
+        log.warning(s"ActorInitializationException for executor $executorActorUrl")
         // failed to create the actor. Notify execution manager that we could not start the stage
         Stop
       }
       case _: ActorKilledException => {
+        log.warning(s"ActorKilledException for executor $executorActorUrl")
         //we should just ignore here unless we did not know apriori about it
         Stop
       }
@@ -107,8 +109,6 @@ object Executor {
     val executorId = s"$topologyName-$stageId-$nhostname-$randomPort"
 
     val actorSystem = Utils.buildActorSystem(s"executorSystem-$executorId", randomPort)
-
-    println(s"Execution Manager Url: $topologyExecutionManagerActorUrl")
     Utils.buildExecutorActor(actorSystem, executorId, stageScheduleInfo, hostname, randomPort)
     actorSystem
   }
