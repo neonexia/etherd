@@ -6,7 +6,8 @@ import scala.collection.{mutable, immutable}
 import com.ocg.etherd.streams._
 
 /**
- *
+ * A DMessageBus implementation used for single process (JVM) runtime
+ * This is mostly used for testing and single machine non-production scenarios
  */
 private[etherd] class LocalDMessageBus() extends DMessageBus {
   var qmap = mutable.HashMap.empty[String, mutable.HashMap[Int, LocalDMessageQueue]]
@@ -67,17 +68,18 @@ private[etherd] class LocalDMessageQueue(name: String, partition: Int) {
 private[etherd] class LocalReadableDMessageBusStream(name: String, bus: LocalDMessageBus) extends ReadableEventStream {
   var pool: ExecutorService = Executors.newFixedThreadPool(2)
   var queue: Option[LocalDMessageQueue] = None
-  var initialized = false
-  def topic = this.name
+  var initializedWithPartition: Int = -1
+
+  override def topic: String = this.name
 
   def writeOnly = false
 
   def init(partition: Int): Unit = synchronized {
-    if(initialized) {
-      return
+    if(initializedWithPartition > -1) {
+      throw new Exception(s"LocalReadableDMessageBusStream has already been initialized with $initializedWithPartition")
     }
 
-    this.initialized = true
+    this.initializedWithPartition = partition
     //println("init LocalReadableDMessageBusStream " + this.name + " for partition" + partition.toString)
     this.queue = Some(this.bus.getLocalQueue(this.topic, partition))
     this.queue.get.subscribe(this)
@@ -92,11 +94,11 @@ private[etherd] class LocalReadableDMessageBusStream(name: String, bus: LocalDMe
     })
   }
 
-  private[etherd] def getBackingQueue = this.queue
-
   override def take(offset: Int, count: Int): Iterator[Event] = {
     null
   }
+
+  private[etherd] def getBackingQueue = this.queue
 }
 
 private[etherd] class LocalWritableDMessageBusStream(name: String, bus: LocalDMessageBus) extends WritableEventStream {

@@ -5,17 +5,17 @@ import com.ocg.etherd.streams._
 import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
+ * Tests for local message bus implementation
   */
-class DMessageQueueSpec extends UnitSpec {
+class LocalDMessageQueueSpec extends UnitSpec {
 
   "A LocalDMessageBus" should "build multiple streams with same backing queue when linked to the same partition of the same topic" in {
     val bus = new LocalDMessageBus()
-    val default_mstream0 = bus.buildStream("default").asInstanceOf[LocalReadableDMessageBusStream]
-    val default_mstream1 = bus.buildStream("default").asInstanceOf[LocalReadableDMessageBusStream]
-    val default_wstream0 = bus.buildWriteOnlyStream("default").asInstanceOf[LocalWritableDMessageBusStream]
+    val default_mstream0 = buildLocalReadableStream(bus, "default")
+    val default_mstream1 = buildLocalReadableStream(bus, "default")
+    val default_wstream0 = buildLocalWritableStream(bus, "default")
 
     default_mstream0.init(0)
-    default_mstream0.init(0) // --> ensure we don't mess up if we init the same stream twice
     default_mstream1.init(0)
     default_wstream0.init(0)
 
@@ -29,28 +29,28 @@ class DMessageQueueSpec extends UnitSpec {
       default_wstream0.getBackingQueue.get == default_mstream0.getBackingQueue.get
     }
 
-    val default1_dmstream0 = bus.buildStream("default1").asInstanceOf[LocalReadableDMessageBusStream]
-    val default1_dmstream1 = bus.buildStream("default1").asInstanceOf[LocalReadableDMessageBusStream]
+    val default1_dmstream0 = buildLocalReadableStream(bus, "default1")
+    val default1_dmstream1 = buildLocalReadableStream(bus, "default1")
     default1_dmstream0.init(0)
     default1_dmstream1.init(0)
     assert(default1_dmstream0.getBackingQueue.nonEmpty)
     assert(default1_dmstream1.getBackingQueue.nonEmpty)
 
     assertResult(true) {
-      default1_dmstream0.getBackingQueue.get == default1_dmstream1.getBackingQueue.get
+      default1_dmstream0.getBackingQueue.get eq default1_dmstream1.getBackingQueue.get
     }
 
     assertResult(true) {
-      default1_dmstream0.getBackingQueue.get != default_mstream0.getBackingQueue.get
+      default1_dmstream0.getBackingQueue.get ne default_mstream0.getBackingQueue.get
     }
   }
 
   it should "be able to build streams with their own backing queues when linked to different partitions for the same topic" in {
     val bus = new LocalDMessageBus()
-    val mstream0 = bus.buildStream("default").asInstanceOf[LocalReadableDMessageBusStream]
-    val mstream1 = bus.buildStream("default").asInstanceOf[LocalReadableDMessageBusStream]
-    val wstream0 = bus.buildWriteOnlyStream("default").asInstanceOf[LocalWritableDMessageBusStream]
-    val wstream1 = bus.buildWriteOnlyStream("default").asInstanceOf[LocalWritableDMessageBusStream]
+    val mstream0 = buildLocalReadableStream(bus, "default")
+    val mstream1 = buildLocalReadableStream(bus, "default")
+    val wstream0 = buildLocalWritableStream(bus, "default")
+    val wstream1 = buildLocalWritableStream(bus, "default")
 
     mstream0.init(0)
     wstream0.init(0)
@@ -64,15 +64,15 @@ class DMessageQueueSpec extends UnitSpec {
     assert(wstream1.getBackingQueue.nonEmpty)
 
     assertResult(true) {
-      mstream0.getBackingQueue.get != mstream1.getBackingQueue.get
+      mstream0.getBackingQueue.get ne mstream1.getBackingQueue.get
     }
 
     assertResult(true) {
-      wstream0.getBackingQueue.get != wstream1.getBackingQueue.get
+      wstream0.getBackingQueue.get ne wstream1.getBackingQueue.get
     }
 
     assertResult(true) {
-      mstream1.getBackingQueue.get == wstream1.getBackingQueue.get
+      mstream1.getBackingQueue.get eq wstream1.getBackingQueue.get
     }
   }
 
@@ -82,9 +82,9 @@ class DMessageQueueSpec extends UnitSpec {
 
     // Init streams and out queues
     val bus = new LocalDMessageBus()
-    val mstream = bus.buildStream("default").asInstanceOf[LocalReadableDMessageBusStream]
-    val mstream1 = bus.buildStream("default").asInstanceOf[LocalReadableDMessageBusStream]
-    val wstream = bus.buildWriteOnlyStream("default").asInstanceOf[LocalWritableDMessageBusStream]
+    val mstream = buildLocalReadableStream(bus, "default")
+    val mstream1 = buildLocalReadableStream(bus, "default")
+    val wstream = buildLocalWritableStream(bus, "default")
     mstream.init(0)
     mstream.subscribe((topic, ev) => {
       outq.add(ev)
@@ -116,10 +116,10 @@ class DMessageQueueSpec extends UnitSpec {
 
     // Init streams and out queues
     val bus = new LocalDMessageBus()
-    val mstream0 = bus.buildStream("default").asInstanceOf[LocalReadableDMessageBusStream]
-    val mstream1 = bus.buildStream("default").asInstanceOf[LocalReadableDMessageBusStream]
-    val wstream0 = bus.buildWriteOnlyStream("default").asInstanceOf[LocalWritableDMessageBusStream]
-    val wstream1 = bus.buildWriteOnlyStream("default").asInstanceOf[LocalWritableDMessageBusStream]
+    val mstream0 = buildLocalReadableStream(bus, "default")
+    val mstream1 = buildLocalReadableStream(bus, "default")
+    val wstream0 = buildLocalWritableStream(bus, "default")
+    val wstream1 = buildLocalWritableStream(bus, "default")
 
     // read from partition 0
     mstream0.init(0)
@@ -151,7 +151,7 @@ class DMessageQueueSpec extends UnitSpec {
     wstream1.init(1)
 
     assertResult(true) {
-      mstream1.getBackingQueue.get == wstream1.getBackingQueue.get
+      mstream1.getBackingQueue.get eq wstream1.getBackingQueue.get
     }
 
     this.produceEvents(wstream1, 12)

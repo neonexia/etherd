@@ -2,6 +2,8 @@ package com.ocg.etherd.runtime
 
 import java.util.concurrent.atomic.AtomicInteger
 
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.Terminated
@@ -11,14 +13,19 @@ import com.ocg.etherd.EtherdEnv
 import com.ocg.etherd.runtime.RuntimeMessages._
 import com.ocg.etherd.topology.Stage
 
-import scala.collection.mutable
-
+/**
+ * Manages the execution lifecycle and monitoring of stages in a topology.
+ * This is a seperate child Actor than the cluster manager. This can be run in process on the same node as the cluster
+ * manager or on a different node on the cluster or within a container managed by the resource manager itself eg: Yarn
+ * @param topologyName
+ * @param topologyExecutionManagerActorUrl
+ */
 class TopologyExecutionManager(topologyName: String, topologyExecutionManagerActorUrl: String) extends Actor {
   val log = Logging(context.system, this)
   val env = EtherdEnv.get
   val scheduler = this.env.getScheduler
   val stageIdInc = new AtomicInteger(1)
-  val stageIdExecutorsMap = mutable.Map.empty[Int, ExecutorData]
+  val stageIdExecutorsMap = mutable.Map.empty[Int, ListBuffer[ExecutorData]]
   val stageIdStageMap = mutable.Map.empty[Int, Stage]
   var executionState = RuntimeState.Init
 
@@ -48,15 +55,18 @@ class TopologyExecutionManager(topologyName: String, topologyExecutionManagerAct
       log.info(s"Received Executor registration: $executorId for topology $topologyName")
 
       //setup a deathwatch
-      def watchExecutor() = {
-        val actorRef = Utils.resolveActor(this.context.system, executorData.executorUrl.get)
-        this.context.watch(actorRef)
-      }
-      watchExecutor()
+      val actorRef = Utils.resolveActor(this.context.system, executorData.executorUrl.get)
+      this.context.watch(actorRef)
 
       // register stageId -> ExecutorData
       val stageId = executorData.stageId
-      this.stageIdExecutorsMap += stageId -> executorData
+      this.stageIdExecutorsMap.get(stageId) match {
+        case Some(executorDataList) => executorDataList += executorData
+        case None => {
+          val executorDataList = ListBuffer[ExecutorData](executorData)
+          stageIdExecutorsMap += stageId -> executorDataList
+        }
+      }
 
       // send the stage to the executor
       log.info(s"Sending stage:$stageId to executor:$executorId")
@@ -65,7 +75,7 @@ class TopologyExecutionManager(topologyName: String, topologyExecutionManagerAct
     }
 
     case GetRegisteredExecutors(topologyName: String) => {
-      sender ! ExecutorList(this.stageIdExecutorsMap.values.toList)
+      sender ! ExecutorList(this.stageIdExecutorsMap.values.flatten.toList)
     }
 
     case Terminated(executorActorRef:ActorRef) => {

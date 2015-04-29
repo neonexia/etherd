@@ -144,6 +144,9 @@ class SPNSpec extends UnitSpec {
     var finalStageList = mutable.ListBuffer.empty[Stage]
     ingestion.buildStages(finalStageList)
     finalStageList.size should equal (1)
+    finalStageList.foreach {stage =>
+      getStageTasks(stage).size should equal (1)
+    }
   }
 
   it should "when chained with 2 sinks should produce 3 stages" in {
@@ -158,6 +161,10 @@ class SPNSpec extends UnitSpec {
     var finalStageList = mutable.ListBuffer.empty[Stage]
     ingestion.buildStages(finalStageList)
     finalStageList.size should equal (3)
+    finalStageList.foreach {stage =>
+      stage.setDefaultPartitionSize(2)
+      getStageTasks(stage).size should equal (2)
+    }
   }
 
   it should "fanned out to 2 sinks should produce 3 stages" in {
@@ -171,6 +178,19 @@ class SPNSpec extends UnitSpec {
     var finalStageList = mutable.ListBuffer.empty[Stage]
     ingestion.buildStages(finalStageList)
     finalStageList.size should equal (3)
+    var stageNum = 0
+    finalStageList.foreach { stage =>
+      if (stageNum > 1) {
+        stage.setDefaultPartitionSize(2)
+        getStageTasks(stage).size should equal(2)
+      }
+      else
+      {
+        stage.setDefaultPartitionSize(4)
+        getStageTasks(stage).size should equal(4)
+      }
+      stageNum += 1
+    }
   }
 
   it should "with ingest/map/filter-filter-filter-sink produce 3 stages" in {
@@ -184,5 +204,9 @@ class SPNSpec extends UnitSpec {
     var finalStageList = mutable.ListBuffer.empty[Stage]
     ingestion.buildStages(finalStageList)
     finalStageList.size should equal (3)
+    finalStageList.foreach {stage =>
+      stage.setDefaultPartitionSize(0)
+      getStageTasks(stage).size should equal (1)
+    }
   }
 }

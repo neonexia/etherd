@@ -60,7 +60,7 @@ private[etherd] class Executor(executorId: String, stageSchedulingInfo:StageSche
    */
   override def preStart() = {
     log.info(s"ExecutorId: $executorId. Sending registration to execution manager")
-    val executorData =  ExecutorData(executorId, stageSchedulingInfo.stageId, host, port, Some(this.executorActorUrl))
+    val executorData =  ExecutorData(executorId, stageSchedulingInfo.stageId, stageSchedulingInfo.partition, host, port, Some(this.executorActorUrl))
     this.topologyExecutionManagerActor ! RegisterExecutor(stageSchedulingInfo.topologyId, executorData)
   }
 
@@ -88,7 +88,7 @@ private[etherd] class Executor(executorId: String, stageSchedulingInfo:StageSche
       val executorWorker = Utils.buildExecutorWorkerActor(context,
         this.workerIdInc.getAndIncrement,
         this.executorId,
-        StageExecutionContext(stage)
+        StageExecutionContext(stage, this.stageSchedulingInfo.partition)
       )
     }
     case _ => log.error("Unknown message received")
@@ -102,11 +102,12 @@ object Executor {
     val topologyExecutionManagerActorUrl = stageScheduleInfo.topologyExecutionManagerActorUrl
     val topologyName = stageScheduleInfo.topologyId
     val stageId = stageScheduleInfo.stageId
+    val partition = stageScheduleInfo.partition
     val randomPort = 9000 + Random.nextInt(500)
     val hostname = java.net.InetAddress.getLocalHost.getCanonicalHostName
 
     val nhostname = hostname.replace('.', '-' )
-    val executorId = s"$topologyName-$stageId-$nhostname-$randomPort"
+    val executorId = s"$topologyName-$stageId-$partition-$nhostname-$randomPort"
 
     val actorSystem = Utils.buildActorSystem(s"executorSystem-$executorId", randomPort)
     Utils.buildExecutorActor(actorSystem, executorId, stageScheduleInfo, hostname, randomPort)

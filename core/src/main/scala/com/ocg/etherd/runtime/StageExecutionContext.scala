@@ -2,13 +2,13 @@ package com.ocg.etherd.runtime
 
 import com.ocg.etherd.topology.Stage
 
-private[etherd] class StageExecutionContext(stage: Stage) {
+private[etherd] class StageExecutionContext(stage: Stage, partition: Int) {
   var runtimeState = RuntimeState.Init
 
   def run(): Unit = {
     assert(this.runtimeState != RuntimeState.Scheduled)
     this.runtimeState = RuntimeState.Scheduled
-    this.stage.underlying.beginProcessStreams()
+    this.stage.underlying.beginProcessStreams(partition)
   }
 
   def stop(): Unit = {
@@ -17,7 +17,7 @@ private[etherd] class StageExecutionContext(stage: Stage) {
 }
 
 object StageExecutionContext {
-  def apply(stage: Stage): StageExecutionContext = {
-    new StageExecutionContext(stage)
+  def apply(stage: Stage, partition: Int): StageExecutionContext = {
+    new StageExecutionContext(stage, partition)
   }
 }

@@ -3,7 +3,20 @@ package com.ocg.etherd.topology
 import com.ocg.etherd.runtime.scheduler.{ResourceAsk, SchedulableTask}
 import com.ocg.etherd.spn.SPN
 
-class Stage(spn: SPN) extends Serializable {
+trait PartitioningPolicy {
+  var defaultPartitionSize = 1
+
+  def setDefaultPartitionSize(partitions: Int) = this.defaultPartitionSize = Math.max(1, partitions)
+
+  def getDefaultPartitionSize = this.defaultPartitionSize
+
+  def applyPolicy: List[(Int, ResourceAsk)] = {
+    // default policy is to use the defaultPartitionSize set
+    (0 to this.defaultPartitionSize - 1).map { x => (x, new ResourceAsk(1,1))}.toList
+  }
+}
+
+private[etherd] class Stage(spn: SPN) extends PartitioningPolicy with Serializable {
   var stageId: Option[Int] = None
   var topologyId: Option[String] = None
   var topologyExecutionManagerActorUrl: Option[String] = None
@@ -23,12 +36,13 @@ class Stage(spn: SPN) extends Serializable {
   def getTopologyId = this.topologyId
 
   def buildTasks: Iterator[SchedulableTask[StageSchedulingInfo]] = {
-    val schedulingInfo = StageSchedulingInfo(this.getStageId.get, this.getTopologyId.get, this.getTopologyExecutionManagerActorUrl.get)
-    val resourceAsk = new ResourceAsk(1, 1)
-    List(new SchedulableTask[StageSchedulingInfo](schedulingInfo, resourceAsk)).iterator
+    this.applyPolicy.map { case (partition, resourceAsk) =>
+      val schedulingInfo = StageSchedulingInfo(this.getStageId.get, partition, this.getTopologyId.get, this.getTopologyExecutionManagerActorUrl.get)
+      new SchedulableTask[StageSchedulingInfo](schedulingInfo, resourceAsk)
+    }.iterator
   }
 }
 
-case class StageSchedulingInfo(stageId: Int, topologyId: String, topologyExecutionManagerActorUrl: String)
+case class StageSchedulingInfo(stageId: Int, partition:Int, topologyId: String, topologyExecutionManagerActorUrl: String)
 
 

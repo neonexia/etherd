@@ -18,7 +18,7 @@ import com.ocg.etherd.streams.{ReadableEventStreamSpec, WritableEventStreamSpec}
  * 4. Cluster Manager calls te schduler to allocate resources
  * 5. Execute stages as tasks on those resources
  */
-class Topology(topologyName: String) extends Logging {
+class Topology(topologyName: String, defaultParallelism:Int = 1 /*?? from constants */) extends Logging {
   var topologySubmitted = false
   val env = EtherdEnv.get
   val ingestSpn = EventOps.pass(this.topologyName)
@@ -41,6 +41,7 @@ class Topology(topologyName: String) extends Logging {
     val stages = {
       val stageList = mutable.ListBuffer.empty[Stage]
       this.ingestSpn.buildStages(stageList)
+      stageList.foreach {stage => stage.setDefaultPartitionSize(defaultParallelism)}
       stageList.toList
     }
     logInfo(s"Number of stages for topology: $topologyName =" + stages.size)
@@ -53,5 +54,3 @@ object Topology {
     new Topology(name)
   }
 }
-
-

@@ -4,7 +4,8 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 import com.ocg.etherd.messaging.{LocalWritableDMessageBusStream, LocalReadableDMessageBusStream, LocalDMessageBus}
 import com.ocg.etherd.runtime.ClusterManager
-import com.ocg.etherd.runtime.scheduler.{ResourceAsk, SchedulableTask}
+import com.ocg.etherd.runtime.scheduler.{SchedulableTask, ResourceAsk}
+import com.ocg.etherd.topology.Stage
 import org.scalatest._
 import com.ocg.etherd.streams._
 import com.ocg.etherd.spn._
@@ -38,6 +39,14 @@ OptionValues with Inside with Inspectors with BeforeAndAfterEachTestData
     factory.buildReadableStream(new ReadableEventStreamSpec(streamName))
   }
 
+  def buildLocalReadableStream(bus: LocalDMessageBus, streamName: String): LocalReadableDMessageBusStream = {
+    bus.buildStream(streamName).asInstanceOf[LocalReadableDMessageBusStream]
+  }
+
+  def buildLocalWritableStream(bus: LocalDMessageBus, streamName: String): LocalWritableDMessageBusStream = {
+    bus.buildWriteOnlyStream(streamName).asInstanceOf[LocalWritableDMessageBusStream]
+  }
+
   def buildWritableEventStream(streamName: String): WritableEventStream = {
     val factory = EtherdEnv.env.getStreamBuilder
     factory.buildWritableStream(new WritableEventStreamSpec(streamName))
@@ -49,6 +58,13 @@ OptionValues with Inside with Inspectors with BeforeAndAfterEachTestData
 
   def buildUnitSchedulableTask[T](taskInfo: T): SchedulableTask[T] = {
     new SchedulableTask[T](taskInfo, new ResourceAsk(1, 1))
+  }
+
+  def getStageTasks(stage: Stage) = {
+    stage.setStageId(1)
+    stage.setTopologyId("topology")
+    stage.setTopologyExecutionManagerActorUrl("")
+    stage.buildTasks
   }
 
   // event generation
@@ -78,6 +94,8 @@ OptionValues with Inside with Inspectors with BeforeAndAfterEachTestData
   def shutdownTasks(env: EtherdEnv): Unit = {
     env.getScheduler.shutdownTasks()
   }
+
+
   override protected def beforeEach(testData: TestData): Unit = {
     EtherdEnv.rebuild()
   }

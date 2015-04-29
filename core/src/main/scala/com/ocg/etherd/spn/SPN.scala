@@ -201,7 +201,7 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable with L
     // Build all the streams from their specs
     this.reBuildStreamsFromSpecs()
 
-    //Init default output stream
+    //init default output stream
     this.defaultOutStream.map { stream => {
       logInfo(s"SPN-$spnId for topology $topologyName: Init default outstream:" + stream.topic)
       stream.init(partition)
