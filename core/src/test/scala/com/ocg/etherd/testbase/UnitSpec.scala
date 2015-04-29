@@ -2,7 +2,7 @@ package com.ocg.etherd.testbase
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
-import com.ocg.etherd.messaging.{LocalWritableDMessageBusStream, LocalReadableDMessageBusStream, LocalDMessageBus}
+import com.ocg.etherd.messaging._
 import com.ocg.etherd.runtime.ClusterManager
 import com.ocg.etherd.runtime.scheduler.{SchedulableTask, ResourceAsk}
 import com.ocg.etherd.topology.Stage
@@ -25,7 +25,7 @@ OptionValues with Inside with Inspectors with BeforeAndAfterEachTestData
 
   def buildDummyDestinationStream(topic: String): ConcurrentLinkedQueue[Event] = {
     val q = new ConcurrentLinkedQueue[Event]()
-    val destinationStream = buildReadableEventStream(topic)
+    val destinationStream = buildLocalReadableStream(topic)
     destinationStream.subscribe((topic, event) => {
       q.add(event)
     })
@@ -33,23 +33,12 @@ OptionValues with Inside with Inspectors with BeforeAndAfterEachTestData
     q
   }
 
-  // streams
-  def buildReadableEventStream(streamName: String): ReadableEventStream = {
-    val factory = EtherdEnv.env.getStreamBuilder
-    factory.buildReadableStream(new ReadableEventStreamSpec(streamName))
+  def buildLocalReadableStream(streamName: String): LocalReadableStream = {
+    new LocalReadableStreamSpec(streamName).buildReadableStream.asInstanceOf[LocalReadableStream]
   }
 
-  def buildLocalReadableStream(bus: LocalDMessageBus, streamName: String): LocalReadableDMessageBusStream = {
-    bus.buildStream(streamName).asInstanceOf[LocalReadableDMessageBusStream]
-  }
-
-  def buildLocalWritableStream(bus: LocalDMessageBus, streamName: String): LocalWritableDMessageBusStream = {
-    bus.buildWriteOnlyStream(streamName).asInstanceOf[LocalWritableDMessageBusStream]
-  }
-
-  def buildWritableEventStream(streamName: String): WritableEventStream = {
-    val factory = EtherdEnv.env.getStreamBuilder
-    factory.buildWritableStream(new WritableEventStreamSpec(streamName))
+  def buildLocalWritableStream(streamName: String): LocalWritableStream = {
+    new LocalWritableStreamSpec(streamName).buildWritableStream.asInstanceOf[LocalWritableStream]
   }
 
   def buildUnitSchedulableTask: SchedulableTask[Int] = {
@@ -69,7 +58,7 @@ OptionValues with Inside with Inspectors with BeforeAndAfterEachTestData
 
   // event generation
   def produceEvents(topic: String, numEvents: Int): Unit = {
-    val wstream = EtherdEnv.get.getStreamBuilder.buildWritableStream(new WritableEventStreamSpec(topic))
+    val wstream = buildLocalWritableStream(topic)
     wstream.init(0)
     produceEvents(wstream, numEvents)
   }

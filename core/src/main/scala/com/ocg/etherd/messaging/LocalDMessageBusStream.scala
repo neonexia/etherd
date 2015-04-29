@@ -1,6 +1,7 @@
 package com.ocg.etherd.messaging
 
 import java.util.concurrent.{Executors, ExecutorService}
+import com.ocg.etherd.EtherdEnv
 import com.ocg.etherd.streams.{WritableEventStream, ReadableEventStream, Event}
 import scala.collection.{mutable, immutable}
 import com.ocg.etherd.streams._
@@ -13,11 +14,11 @@ private[etherd] class LocalDMessageBus() extends DMessageBus {
   var qmap = mutable.HashMap.empty[String, mutable.HashMap[Int, LocalDMessageQueue]]
   //println("Creating a LocalDMessageBus")
   def buildStream(topic: String) : ReadableEventStream  = {
-    new LocalReadableDMessageBusStream(topic, this)
+    new LocalReadableStream(topic, this)
   }
 
   def buildWriteOnlyStream(topic: String) : WritableEventStream  = {
-    new LocalWritableDMessageBusStream(topic, this)
+    new LocalWritableStream(topic, this)
   }
 
   private[etherd] def getLocalQueue(topic: String, partition: Int): LocalDMessageQueue = synchronized {
@@ -45,7 +46,7 @@ private[etherd] class LocalDMessageBus() extends DMessageBus {
 
 private[etherd] class LocalDMessageQueue(name: String, partition: Int) {
   var queue = mutable.ListBuffer[Event]()
-  var subscriptions = mutable.ListBuffer[LocalReadableDMessageBusStream]()
+  var subscriptions = mutable.ListBuffer[LocalReadableStream]()
 
   def enqueue(ev: Event): Unit = {
     //println(s"LocalDMessageQueue: Queueing for queue $name on partition $partition")
@@ -57,7 +58,7 @@ private[etherd] class LocalDMessageQueue(name: String, partition: Int) {
     }
   }
 
-  def subscribe(stream: LocalReadableDMessageBusStream): Unit = {
+  def subscribe(stream: LocalReadableStream): Unit = {
     //println(s"LocalDMessageQueue: Received subscription for queue $name on partition $partition")
     subscriptions += stream
   }
@@ -65,7 +66,7 @@ private[etherd] class LocalDMessageQueue(name: String, partition: Int) {
   private[etherd] def size = this.queue.size
 }
 
-private[etherd] class LocalReadableDMessageBusStream(name: String, bus: LocalDMessageBus) extends ReadableEventStream {
+private[etherd] class LocalReadableStream(name: String, bus: LocalDMessageBus) extends ReadableEventStream {
   var pool: ExecutorService = Executors.newFixedThreadPool(2)
   var queue: Option[LocalDMessageQueue] = None
   var initializedWithPartition: Int = -1
@@ -101,7 +102,7 @@ private[etherd] class LocalReadableDMessageBusStream(name: String, bus: LocalDMe
   private[etherd] def getBackingQueue = this.queue
 }
 
-private[etherd] class LocalWritableDMessageBusStream(name: String, bus: LocalDMessageBus) extends WritableEventStream {
+private[etherd] class LocalWritableStream(name: String, bus: LocalDMessageBus) extends WritableEventStream {
   var pool: ExecutorService = Executors.newFixedThreadPool(2)
   var queue: Option[LocalDMessageQueue] = None
   var initialized = false
@@ -132,14 +133,22 @@ private[etherd] class LocalWritableDMessageBusStream(name: String, bus: LocalDMe
   }
 }
 
-private[etherd] class LocalDMessageBusStreamBuilder(name: String) extends EventStreamBuilder {
-  val messageBus = new LocalDMessageBus()
+private[etherd] class LocalReadableStreamSpec(name: String) extends EventStreamSpec {
+  def topic = name
 
-  def buildReadableStream(spec: ReadableEventStreamSpec): ReadableEventStream = {
-    messageBus.buildStream(spec.topic)
+  def buildReadableStream: ReadableEventStream = {
+    EtherdEnv.get.defaultMessageBus.buildStream(this.topic)
   }
 
-  def buildWritableStream(spec: WritableEventStreamSpec): WritableEventStream = {
-    messageBus.buildWriteOnlyStream(spec.topic)
+  def buildWritableStream: WritableEventStream = ???
+}
+
+private[etherd] class LocalWritableStreamSpec(name: String) extends EventStreamSpec {
+  def topic = name
+
+  def buildReadableStream: ReadableEventStream = ???
+
+  def buildWritableStream: WritableEventStream = {
+    EtherdEnv.get.defaultMessageBus.buildWriteOnlyStream(this.topic)
   }
 }

@@ -5,7 +5,7 @@ import scala.collection.mutable
 import com.ocg.etherd.{Logging, EtherdEnv}
 import com.ocg.etherd.spn.{SPN, EventOps}
 import com.ocg.etherd.runtime.RuntimeMessages.SubmitStages
-import com.ocg.etherd.streams.{ReadableEventStreamSpec, WritableEventStreamSpec}
+import com.ocg.etherd.streams.EventStreamSpec
 
 /**
  * A Topology is a specification of how streams and processing nodes be composed to process events.
@@ -23,12 +23,12 @@ class Topology(topologyName: String, defaultParallelism:Int = 1 /*?? from consta
   val env = EtherdEnv.get
   val ingestSpn = EventOps.pass(this.topologyName)
 
-  def ingest(istreamSpec: ReadableEventStreamSpec) : SPN = {
+  def ingest(istreamSpec: EventStreamSpec) : SPN = {
     this.ingestSpn.attachInputStreamSpec(istreamSpec)
     this.ingestSpn
   }
 
-  def ingest(istreams: Iterator[ReadableEventStreamSpec]): SPN = {
+  def ingest(istreams: Iterator[EventStreamSpec]): SPN = {
     istreams.foreach { _ => this.ingestSpn.attachInputStreamSpec(_) }
     this.ingestSpn
   }

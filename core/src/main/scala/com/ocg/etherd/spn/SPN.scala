@@ -1,6 +1,8 @@
 package com.ocg.etherd.spn
 
 import java.util.concurrent.atomic.AtomicInteger
+import com.ocg.etherd.messaging.{LocalReadableStreamSpec, LocalWritableStreamSpec}
+
 import scala.collection.mutable
 import com.ocg.etherd.{Logging, EtherdEnv}
 import com.ocg.etherd.topology.Stage
@@ -15,11 +17,11 @@ import com.ocg.etherd.streams._
 abstract class SPN(spnId: Int, topologyName: String) extends Serializable with Logging{
   private var linkedSpn: Option[SPN] = None
   private var sinkedSPNs: mutable.ListBuffer[SPN] = mutable.ListBuffer.empty[SPN]
-  private var istreamsSpec: mutable.ListBuffer[ReadableEventStreamSpec] = mutable.ListBuffer.empty[ReadableEventStreamSpec]
+  private var istreamsSpec: mutable.ListBuffer[EventStreamSpec] = mutable.ListBuffer.empty[EventStreamSpec]
   private var istreams: mutable.ListBuffer[ReadableEventStream] = mutable.ListBuffer.empty[ReadableEventStream]
-  private var externalOstreamsSpec: mutable.ListBuffer[WritableEventStreamSpec] = mutable.ListBuffer.empty[WritableEventStreamSpec]
+  private var externalOstreamsSpec: mutable.ListBuffer[EventStreamSpec] = mutable.ListBuffer.empty[EventStreamSpec]
   private var externalOstreams: mutable.ListBuffer[WritableEventStream] = mutable.ListBuffer.empty[WritableEventStream]
-  private var defaultOutStreamSpec: Option[WritableEventStreamSpec] = None
+  private var defaultOutStreamSpec: Option[EventStreamSpec] = None
   private var defaultOutStream: Option[WritableEventStream] = None
 
   def getId = this.spnId
@@ -31,11 +33,11 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable with L
    * @param streamSpec
    * @return
    */
-  def attachInputStreamSpec(streamSpec: ReadableEventStreamSpec) = {
+  def attachInputStreamSpec(streamSpec: EventStreamSpec) = {
     this.istreamsSpec += streamSpec
   }
 
-  def attachInputStreamsSpec(streamSpecs: Iterator[ReadableEventStreamSpec]) = {
+  def attachInputStreamsSpec(streamSpecs: Iterator[EventStreamSpec]) = {
     streamSpecs.foreach { istreamSpec => this.attachInputStreamSpec(istreamSpec)}
   }
 
@@ -44,14 +46,14 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable with L
    * This SPN's(stage) output events will be routed to this stream
    * @param streamSpec
    */
-  def attachExternalOutputStreamSpec(streamSpec: WritableEventStreamSpec): Unit = {
+  def attachExternalOutputStreamSpec(streamSpec: EventStreamSpec): Unit = {
     this.linkedSpn match {
       case Some(spn) => spn.attachExternalOutputStreamSpec(streamSpec)
       case None => this.externalOstreamsSpec += streamSpec
     }
   }
 
-  def attachExternalOutputStreamSpecs(streamSpecs: Iterator[WritableEventStreamSpec]): Unit = {
+  def attachExternalOutputStreamSpecs(streamSpecs: Iterator[EventStreamSpec]): Unit = {
     this.linkedSpn match {
       case Some(spn) => spn.attachExternalOutputStreamSpecs(streamSpecs)
       case None => streamSpecs.foreach { ostreamSpec => this.attachExternalOutputStreamSpec(ostreamSpec)}
@@ -88,7 +90,7 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable with L
       case None => {
         targets.foreach { target =>
           this.sinkedSPNs += target
-          target.attachInputStreamSpec(new ReadableEventStreamSpec(this.getOrBuildDefaultOutputStreamSpec.get.topic))
+          target.attachInputStreamSpec(new LocalReadableStreamSpec(this.getOrBuildDefaultOutputStreamSpec.get.topic))
         }
       }
     }
@@ -105,7 +107,7 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable with L
     target
   }
 
-  def sink(streamSpec: WritableEventStreamSpec): SPN = {
+  def sink(streamSpec: EventStreamSpec): SPN = {
     this.linkedSpn match {
       case Some(spn) => spn.sink(streamSpec)
       case None => this.externalOstreamsSpec += streamSpec
@@ -152,7 +154,7 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable with L
     val ostreamSpec = this.defaultOutStreamSpec match {
       case Some(streamSpec) => streamSpec
       case None => {
-        val wstreamSpec = new WritableEventStreamSpec("$internal_" + this.topologyName + this.getId.toString)
+        val wstreamSpec = new LocalWritableStreamSpec("$internal_" + this.topologyName + this.getId.toString)
         this.defaultOutStreamSpec = Some(wstreamSpec)
         wstreamSpec
       }
@@ -160,23 +162,21 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable with L
     Some(ostreamSpec)
   }
 
-  private def setdefaultOutputStreamSpec(streamSpec: WritableEventStreamSpec) = {
+  private def setdefaultOutputStreamSpec(streamSpec: EventStreamSpec) = {
     this.defaultOutStreamSpec = Some(streamSpec)
   }
 
   private def reBuildStreamsFromSpecs() = {
-    val builder = EtherdEnv.get.getStreamBuilder
-
     this.defaultOutStreamSpec.map { streamSpec =>
-      this.defaultOutStream = Some(builder.buildWritableStream(streamSpec))
+      this.defaultOutStream = Some(streamSpec.buildWritableStream)
     }
 
     this.externalOstreamsSpec.foreach {streamSpec => {
-      this.externalOstreams += builder.buildWritableStream(streamSpec)
+      this.externalOstreams += streamSpec.buildWritableStream
     }}
 
     this.istreamsSpec.foreach { streamSpec => {
-      this.istreams += builder.buildReadableStream(streamSpec)
+      this.istreams += streamSpec.buildReadableStream
     }}
   }
 

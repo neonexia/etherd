@@ -10,9 +10,7 @@ import scala.concurrent.duration._
 import com.ocg.etherd.EtherdEnv
 import com.ocg.etherd.runtime.RuntimeMessages.{ExecutorList, GetRegisteredExecutors}
 import com.ocg.etherd.topology.Topology
-import com.ocg.etherd.messaging.LocalDMessageBus
-import com.ocg.etherd.messaging.LocalReadableDMessageBusStream
-import com.ocg.etherd.messaging.{LocalReadableDMessageBusStream, LocalDMessageBus}
+import com.ocg.etherd.messaging._
 import com.ocg.etherd.testbase.UnitSpec
 import com.ocg.etherd.streams._
 import com.ocg.etherd.testbase.UnitSpec
@@ -35,9 +33,9 @@ class LocalExecutionSpec extends UnitSpec {
 
     // build the topology and run it.
     val tp = Topology("topology")
-    tp.ingest(new ReadableEventStreamSpec("input_stream1")).map(e => Event(e.getKey, e.getRecord.getRaw, e.getOrder))
+    tp.ingest(new LocalReadableStreamSpec("input_stream1")).map(e => Event(e.getKey, e.getRecord.getRaw, e.getOrder))
       .dropByKeys(List("#baddata"))
-      .sink(new WritableEventStreamSpec("final_destination"))
+      .sink(new LocalWritableStreamSpec("final_destination"))
     tp.run()
 
     // wait for executors to start
@@ -76,11 +74,11 @@ class LocalExecutionSpec extends UnitSpec {
 
     // build the topology and run it.
     val tp = Topology("topology")
-    val spn = tp.ingest(new ReadableEventStreamSpec("input_stream1"))
+    val spn = tp.ingest(new LocalReadableStreamSpec("input_stream1"))
       .map(e => Event(e.getKey, e.getRecord.getRaw, e.getOrder))
       .dropByKeys(List("#baddata"))
       .sink(buildPass)
-      .sink(new WritableEventStreamSpec("final_destination"))
+      .sink(new LocalWritableStreamSpec("final_destination"))
     val stageList = ListBuffer.empty[Stage]
     tp.run()
 
@@ -120,19 +118,19 @@ class LocalExecutionSpec extends UnitSpec {
 
     // build the topology and run it.
     val tp = Topology("testtopology1")
-    tp.ingest(new ReadableEventStreamSpec("input_stream1"))
+    tp.ingest(new LocalReadableStreamSpec("input_stream1"))
       .map(e => Event(e.getKey, e.getRecord.getRaw, e.getOrder))
       .dropByKeys(List("#baddata"))
       .sink(buildPass)
-      .sink(new WritableEventStreamSpec("final_destination"))
+      .sink(new LocalWritableStreamSpec("final_destination"))
     tp.run()
 
     // build another topology and run it.
     val tp2 = Topology("testtopology2")
-    tp2.ingest(new ReadableEventStreamSpec("input_stream2"))
+    tp2.ingest(new LocalReadableStreamSpec("input_stream2"))
       .map(e => Event(e.getKey, e.getRecord.getRaw, e.getOrder))
       .sink(buildPass)
-      .sink(new WritableEventStreamSpec("final_destination"))
+      .sink(new LocalWritableStreamSpec("final_destination"))
     tp2.run()
 
     //wait for executors to start

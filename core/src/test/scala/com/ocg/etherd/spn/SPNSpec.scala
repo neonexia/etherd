@@ -3,7 +3,7 @@ package com.ocg.etherd.spn
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import com.ocg.etherd.EtherdEnv
-import com.ocg.etherd.messaging.{LocalReadableDMessageBusStream, LocalDMessageBus}
+import com.ocg.etherd.messaging.{LocalReadableStreamSpec, LocalWritableStreamSpec, LocalReadableStream, LocalDMessageBus}
 import com.ocg.etherd.testbase.UnitSpec
 import com.ocg.etherd.streams._
 import com.ocg.etherd.topology.Stage
@@ -18,8 +18,8 @@ class SPNSpec extends UnitSpec {
 
     // create a pass spn and configure it to send the events to the final_destination
     val pass = buildPass
-    pass.attachInputStreamSpec(new ReadableEventStreamSpec("input_stream1"))
-    pass.attachExternalOutputStreamSpec(new WritableEventStreamSpec("final_destination"))
+    pass.attachInputStreamSpec(new LocalReadableStreamSpec("input_stream1"))
+    pass.attachExternalOutputStreamSpec(new LocalWritableStreamSpec("final_destination"))
     pass.beginProcessStreams(0)
 
     //simulate some events on the input stream
@@ -36,9 +36,9 @@ class SPNSpec extends UnitSpec {
 
     // create a pass spn and configure it to send the events to the final_destination
     val pass = buildPass
-    pass.attachInputStreamSpec(new ReadableEventStreamSpec("input_stream1"))
-    pass.attachInputStreamSpec(new ReadableEventStreamSpec("input_stream2"))
-    pass.attachExternalOutputStreamSpec(new WritableEventStreamSpec("final_destination"))
+    pass.attachInputStreamSpec(new LocalReadableStreamSpec("input_stream1"))
+    pass.attachInputStreamSpec(new LocalReadableStreamSpec("input_stream2"))
+    pass.attachExternalOutputStreamSpec(new LocalWritableStreamSpec("final_destination"))
     pass.beginProcessStreams(0)
 
     //simulate some events on the input stream
@@ -56,13 +56,13 @@ class SPNSpec extends UnitSpec {
 
     // create a pass spn and configure it to send the events to the final_destination
     val pass = buildPass
-    pass.attachInputStreamSpec(new ReadableEventStreamSpec("input_stream1"))
-    pass.attachInputStreamSpec(new ReadableEventStreamSpec("input_stream2"))
+    pass.attachInputStreamSpec(new LocalReadableStreamSpec("input_stream1"))
+    pass.attachInputStreamSpec(new LocalReadableStreamSpec("input_stream2"))
 
     val pass2 = buildPass
     val pass3 = buildPass
-    pass2.attachExternalOutputStreamSpec(new WritableEventStreamSpec("final_destination"))
-    pass3.attachExternalOutputStreamSpec(new WritableEventStreamSpec("final_destination"))
+    pass2.attachExternalOutputStreamSpec(new LocalWritableStreamSpec("final_destination"))
+    pass3.attachExternalOutputStreamSpec(new LocalWritableStreamSpec("final_destination"))
     pass.split(List(pass2, pass3).iterator)
 
     // call begin when all is setup
@@ -85,13 +85,13 @@ class SPNSpec extends UnitSpec {
 
     // create a pass spn and configure it to send the events to the final_destination
     val pass = buildPass
-    pass.attachInputStreamSpec(new ReadableEventStreamSpec("input_stream1"))
-    pass.attachInputStreamSpec(new ReadableEventStreamSpec("input_stream2"))
+    pass.attachInputStreamSpec(new LocalReadableStreamSpec("input_stream1"))
+    pass.attachInputStreamSpec(new LocalReadableStreamSpec("input_stream2"))
 
     val pass2 = buildPass
     val filter = buildFilter("5")
-    pass2.attachExternalOutputStreamSpec(new WritableEventStreamSpec("final_destination"))
-    filter.attachExternalOutputStreamSpec(new WritableEventStreamSpec("final_destination"))
+    pass2.attachExternalOutputStreamSpec(new LocalWritableStreamSpec("final_destination"))
+    filter.attachExternalOutputStreamSpec(new LocalWritableStreamSpec("final_destination"))
     pass.split(List(pass2, filter).iterator)
 
     // call begin when all is setup
@@ -121,8 +121,8 @@ class SPNSpec extends UnitSpec {
     firstFilter.split(List(filterLast).iterator)
 
 
-    ingestion.attachInputStreamSpec(new ReadableEventStreamSpec("input_stream1"))
-    filterLast.attachExternalOutputStreamSpec(new WritableEventStreamSpec("final_destination"))
+    ingestion.attachInputStreamSpec(new LocalReadableStreamSpec("input_stream1"))
+    filterLast.attachExternalOutputStreamSpec(new LocalWritableStreamSpec("final_destination"))
 
     // call begin processing on all staged streams
     ingestion.beginProcessStreams(0)

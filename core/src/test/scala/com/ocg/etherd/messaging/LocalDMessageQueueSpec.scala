@@ -10,10 +10,9 @@ import java.util.concurrent.ConcurrentLinkedQueue
 class LocalDMessageQueueSpec extends UnitSpec {
 
   "A LocalDMessageBus" should "build multiple streams with same backing queue when linked to the same partition of the same topic" in {
-    val bus = new LocalDMessageBus()
-    val default_mstream0 = buildLocalReadableStream(bus, "default")
-    val default_mstream1 = buildLocalReadableStream(bus, "default")
-    val default_wstream0 = buildLocalWritableStream(bus, "default")
+    val default_mstream0 = buildLocalReadableStream("default")
+    val default_mstream1 = buildLocalReadableStream("default")
+    val default_wstream0 = buildLocalWritableStream("default")
 
     default_mstream0.init(0)
     default_mstream1.init(0)
@@ -29,8 +28,8 @@ class LocalDMessageQueueSpec extends UnitSpec {
       default_wstream0.getBackingQueue.get == default_mstream0.getBackingQueue.get
     }
 
-    val default1_dmstream0 = buildLocalReadableStream(bus, "default1")
-    val default1_dmstream1 = buildLocalReadableStream(bus, "default1")
+    val default1_dmstream0 = buildLocalReadableStream("default1")
+    val default1_dmstream1 = buildLocalReadableStream("default1")
     default1_dmstream0.init(0)
     default1_dmstream1.init(0)
     assert(default1_dmstream0.getBackingQueue.nonEmpty)
@@ -47,10 +46,10 @@ class LocalDMessageQueueSpec extends UnitSpec {
 
   it should "be able to build streams with their own backing queues when linked to different partitions for the same topic" in {
     val bus = new LocalDMessageBus()
-    val mstream0 = buildLocalReadableStream(bus, "default")
-    val mstream1 = buildLocalReadableStream(bus, "default")
-    val wstream0 = buildLocalWritableStream(bus, "default")
-    val wstream1 = buildLocalWritableStream(bus, "default")
+    val mstream0 = buildLocalReadableStream("default")
+    val mstream1 = buildLocalReadableStream("default")
+    val wstream0 = buildLocalWritableStream("default")
+    val wstream1 = buildLocalWritableStream("default")
 
     mstream0.init(0)
     wstream0.init(0)
@@ -82,9 +81,9 @@ class LocalDMessageQueueSpec extends UnitSpec {
 
     // Init streams and out queues
     val bus = new LocalDMessageBus()
-    val mstream = buildLocalReadableStream(bus, "default")
-    val mstream1 = buildLocalReadableStream(bus, "default")
-    val wstream = buildLocalWritableStream(bus, "default")
+    val mstream = buildLocalReadableStream("default")
+    val mstream1 = buildLocalReadableStream("default")
+    val wstream = buildLocalWritableStream("default")
     mstream.init(0)
     mstream.subscribe((topic, ev) => {
       outq.add(ev)
@@ -116,10 +115,10 @@ class LocalDMessageQueueSpec extends UnitSpec {
 
     // Init streams and out queues
     val bus = new LocalDMessageBus()
-    val mstream0 = buildLocalReadableStream(bus, "default")
-    val mstream1 = buildLocalReadableStream(bus, "default")
-    val wstream0 = buildLocalWritableStream(bus, "default")
-    val wstream1 = buildLocalWritableStream(bus, "default")
+    val mstream0 = buildLocalReadableStream("default")
+    val mstream1 = buildLocalReadableStream("default")
+    val wstream0 = buildLocalWritableStream("default")
+    val wstream1 = buildLocalWritableStream("default")
 
     // read from partition 0
     mstream0.init(0)
