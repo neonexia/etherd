@@ -2,8 +2,6 @@ package com.ocg.etherd.spn
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
-import com.ocg.etherd.EtherdEnv
-import com.ocg.etherd.messaging.{LocalReadableStreamSpec, LocalWritableStreamSpec, LocalReadableStream, LocalDMessageBus}
 import com.ocg.etherd.testbase.UnitSpec
 import com.ocg.etherd.streams._
 import com.ocg.etherd.topology.Stage
@@ -18,9 +16,9 @@ class SPNSpec extends UnitSpec {
 
     // create a pass spn and configure it to send the events to the final_destination
     val pass = buildPass
-    pass.attachInputStreamSpec(new LocalReadableStreamSpec("input_stream1"))
-    pass.attachExternalOutputStreamSpec(new LocalWritableStreamSpec("final_destination"))
-    pass.beginProcessStreams(0)
+    pass.attachInputStreamSpec(new ReadableStreamSpec("input_stream1"))
+    pass.attachExternalOutputStreamSpec(new WritableStreamSpec("final_destination"))
+    pass.initialize(0)
 
     //simulate some events on the input stream
     produceEvents("input_stream1", 10)
@@ -36,10 +34,10 @@ class SPNSpec extends UnitSpec {
 
     // create a pass spn and configure it to send the events to the final_destination
     val pass = buildPass
-    pass.attachInputStreamSpec(new LocalReadableStreamSpec("input_stream1"))
-    pass.attachInputStreamSpec(new LocalReadableStreamSpec("input_stream2"))
-    pass.attachExternalOutputStreamSpec(new LocalWritableStreamSpec("final_destination"))
-    pass.beginProcessStreams(0)
+    pass.attachInputStreamSpec(new ReadableStreamSpec("input_stream1"))
+    pass.attachInputStreamSpec(new ReadableStreamSpec("input_stream2"))
+    pass.attachExternalOutputStreamSpec(new WritableStreamSpec("final_destination"))
+    pass.initialize(0)
 
     //simulate some events on the input stream
     produceEvents("input_stream1", 10)
@@ -56,19 +54,19 @@ class SPNSpec extends UnitSpec {
 
     // create a pass spn and configure it to send the events to the final_destination
     val pass = buildPass
-    pass.attachInputStreamSpec(new LocalReadableStreamSpec("input_stream1"))
-    pass.attachInputStreamSpec(new LocalReadableStreamSpec("input_stream2"))
+    pass.attachInputStreamSpec(new ReadableStreamSpec("input_stream1"))
+    pass.attachInputStreamSpec(new ReadableStreamSpec("input_stream2"))
 
     val pass2 = buildPass
     val pass3 = buildPass
-    pass2.attachExternalOutputStreamSpec(new LocalWritableStreamSpec("final_destination"))
-    pass3.attachExternalOutputStreamSpec(new LocalWritableStreamSpec("final_destination"))
+    pass2.attachExternalOutputStreamSpec(new WritableStreamSpec("final_destination"))
+    pass3.attachExternalOutputStreamSpec(new WritableStreamSpec("final_destination"))
     pass.split(List(pass2, pass3).iterator)
 
     // call begin when all is setup
-    pass.beginProcessStreams(0)
-    pass2.beginProcessStreams(0)
-    pass3.beginProcessStreams(0)
+    pass.initialize(0)
+    pass2.initialize(0)
+    pass3.initialize(0)
 
     //simulate some events on the input stream
     produceEvents("input_stream1", 10)
@@ -85,19 +83,19 @@ class SPNSpec extends UnitSpec {
 
     // create a pass spn and configure it to send the events to the final_destination
     val pass = buildPass
-    pass.attachInputStreamSpec(new LocalReadableStreamSpec("input_stream1"))
-    pass.attachInputStreamSpec(new LocalReadableStreamSpec("input_stream2"))
+    pass.attachInputStreamSpec(new ReadableStreamSpec("input_stream1"))
+    pass.attachInputStreamSpec(new ReadableStreamSpec("input_stream2"))
 
     val pass2 = buildPass
     val filter = buildFilter("5")
-    pass2.attachExternalOutputStreamSpec(new LocalWritableStreamSpec("final_destination"))
-    filter.attachExternalOutputStreamSpec(new LocalWritableStreamSpec("final_destination"))
+    pass2.attachExternalOutputStreamSpec(new WritableStreamSpec("final_destination"))
+    filter.attachExternalOutputStreamSpec(new WritableStreamSpec("final_destination"))
     pass.split(List(pass2, filter).iterator)
 
     // call begin when all is setup
-    pass.beginProcessStreams(0)
-    pass2.beginProcessStreams(0)
-    filter.beginProcessStreams(0)
+    pass.initialize(0)
+    pass2.initialize(0)
+    filter.initialize(0)
 
     //simulate some events on the input stream
     produceEvents("input_stream1", 10)
@@ -121,13 +119,13 @@ class SPNSpec extends UnitSpec {
     firstFilter.split(List(filterLast).iterator)
 
 
-    ingestion.attachInputStreamSpec(new LocalReadableStreamSpec("input_stream1"))
-    filterLast.attachExternalOutputStreamSpec(new LocalWritableStreamSpec("final_destination"))
+    ingestion.attachInputStreamSpec(new ReadableStreamSpec("input_stream1"))
+    filterLast.attachExternalOutputStreamSpec(new WritableStreamSpec("final_destination"))
 
     // call begin processing on all staged streams
-    ingestion.beginProcessStreams(0)
-    firstFilter.beginProcessStreams(0)
-    filterLast.beginProcessStreams(0)
+    ingestion.initialize(0)
+    firstFilter.initialize(0)
+    filterLast.initialize(0)
 
     //simulate some events on the input stream
     produceEvents("input_stream1", 10)

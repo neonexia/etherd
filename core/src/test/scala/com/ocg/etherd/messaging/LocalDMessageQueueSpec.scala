@@ -165,4 +165,99 @@ class LocalDMessageQueueSpec extends UnitSpec {
       outq1.size
     }
   }
+
+  it should "be able to build readable and writable streams on different partitions of the different topics that can be subscribed to" in {
+    // final output target
+    val outq1 = new ConcurrentLinkedQueue[Event]()  // destination for topic 1
+    val outq2 = new ConcurrentLinkedQueue[Event]()  // destination for topic 2
+
+    // Init streams and out queues
+    val bus = new LocalDMessageBus()
+    val mstream10 = buildLocalReadableStream("topic1") // topic1 partition 0 readable
+    val wstream10 = buildLocalWritableStream("topic1") // topic1 partition 0 writable
+    val mstream11 = buildLocalReadableStream("topic1") // topic1 partition 1 readable
+    val wstream11 = buildLocalWritableStream("topic1") // topic1 partition 1 writable
+
+    val mstream20 = buildLocalReadableStream("topic2")
+    val wstream20 = buildLocalWritableStream("topic2")
+    val mstream21 = buildLocalReadableStream("topic2")
+    val wstream21 = buildLocalWritableStream("topic2")
+
+    // read from topic 1 partition 0
+    mstream10.init(0)
+    mstream10.subscribe((topic, ev) => {
+      outq1.add(ev)
+    })
+    // write to topic 1 partition 0
+    wstream10.init(0)
+    this.produceEvents(wstream10, 25)
+
+    Thread.sleep(1000)
+    assertResult(25) {
+      wstream10.getBackingQueue.get.size
+    }
+    assertResult(25) {
+      outq1.size
+    }
+
+    // read from topic 1 partition 1
+    mstream11.init(1)
+    mstream11.subscribe((topic, ev) => {
+      outq1.add(ev)
+    })
+    // write to topic 1 partition 1
+    wstream11.init(1)
+    assertResult(true) {
+      mstream11.getBackingQueue.get eq wstream11.getBackingQueue.get
+    }
+    this.produceEvents(wstream11, 12)
+
+    Thread.sleep(1000)
+    assertResult(12) {
+      wstream11.getBackingQueue.get.size
+    }
+    assertResult(37) {
+      outq1.size
+    }
+
+
+    // read from topic 2 partition 0
+    mstream20.init(0)
+    mstream20.subscribe((topic, ev) => {
+      outq2.add(ev)
+    })
+    // write to topic 2 partition 0
+    wstream20.init(0)
+    this.produceEvents(wstream20, 60)
+
+    Thread.sleep(1000)
+    assertResult(60) {
+      wstream20.getBackingQueue.get.size
+    }
+    assertResult(60) {
+      outq2.size
+    }
+
+
+    // read from topic 2 partition 1
+    mstream21.init(1)
+    mstream21.subscribe((topic, ev) => {
+      outq2.add(ev)
+    })
+    // write to topic 2 partition 1
+    wstream21.init(1)
+    assertResult(true) {
+      mstream21.getBackingQueue.get eq wstream21.getBackingQueue.get
+    }
+    this.produceEvents(wstream21, 28)
+
+    Thread.sleep(1000)
+    assertResult(28) {
+      wstream21.getBackingQueue.get.size
+    }
+    assertResult(88) {
+      outq2.size
+    }
+  }
+
 }

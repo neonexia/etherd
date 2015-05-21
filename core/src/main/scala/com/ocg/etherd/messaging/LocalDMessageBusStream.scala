@@ -1,10 +1,8 @@
 package com.ocg.etherd.messaging
 
 import java.util.concurrent.{Executors, ExecutorService}
-import com.ocg.etherd.EtherdEnv
 import com.ocg.etherd.streams.{WritableEventStream, ReadableEventStream, Event}
 import scala.collection.{mutable, immutable}
-import com.ocg.etherd.streams._
 
 /**
  * A DMessageBus implementation used for single process (JVM) runtime
@@ -130,25 +128,5 @@ private[etherd] class LocalWritableStream(name: String, bus: LocalDMessageBus) e
 
   override def push(events: Iterator[Event]): Unit = {
     events.foreach { event => this.push(event)}
-  }
-}
-
-private[etherd] class LocalReadableStreamSpec(name: String) extends EventStreamSpec {
-  def topic = name
-
-  def buildReadableStream: ReadableEventStream = {
-    EtherdEnv.get.defaultMessageBus.buildStream(this.topic)
-  }
-
-  def buildWritableStream: WritableEventStream = ???
-}
-
-private[etherd] class LocalWritableStreamSpec(name: String) extends EventStreamSpec {
-  def topic = name
-
-  def buildReadableStream: ReadableEventStream = ???
-
-  def buildWritableStream: WritableEventStream = {
-    EtherdEnv.get.defaultMessageBus.buildWriteOnlyStream(this.topic)
   }
 }

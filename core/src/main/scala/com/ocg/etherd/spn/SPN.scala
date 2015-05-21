@@ -1,9 +1,8 @@
 package com.ocg.etherd.spn
 
 import java.util.concurrent.atomic.AtomicInteger
-import com.ocg.etherd.messaging.{LocalReadableStreamSpec, LocalWritableStreamSpec}
-
 import scala.collection.mutable
+
 import com.ocg.etherd.{Logging, EtherdEnv}
 import com.ocg.etherd.topology.Stage
 import com.ocg.etherd.streams._
@@ -90,7 +89,7 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable with L
       case None => {
         targets.foreach { target =>
           this.sinkedSPNs += target
-          target.attachInputStreamSpec(new LocalReadableStreamSpec(this.getOrBuildDefaultOutputStreamSpec.get.topic))
+          target.attachInputStreamSpec(new ReadableStreamSpec(this.getOrBuildDefaultOutputStreamSpec.get.topic))
         }
       }
     }
@@ -154,7 +153,7 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable with L
     val ostreamSpec = this.defaultOutStreamSpec match {
       case Some(streamSpec) => streamSpec
       case None => {
-        val wstreamSpec = new LocalWritableStreamSpec("$internal_" + this.topologyName + this.getId.toString)
+        val wstreamSpec = new WritableStreamSpec("$internal_" + this.topologyName + this.getId.toString)
         this.defaultOutStreamSpec = Some(wstreamSpec)
         wstreamSpec
       }
@@ -195,7 +194,7 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable with L
    *   --initialize output streams
    * The partition
    */
-  private[etherd] def beginProcessStreams(partition: Int = 0): Unit = {
+  private[etherd] def initialize(partition: Int = 0): Unit = {
     logInfo(s"SPN-$spnId for topology $topologyName: Begin process streams")
 
     // Build all the streams from their specs
@@ -222,7 +221,7 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable with L
     }
     }
 
-    this.linkedSpn.map { spn => spn.beginProcessStreams(partition)}
+    this.linkedSpn.map { spn => spn.initialize(partition)}
 
     //this.currentState = SPNState.Running
   }

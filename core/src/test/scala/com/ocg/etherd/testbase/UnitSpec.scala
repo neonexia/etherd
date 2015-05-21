@@ -34,11 +34,11 @@ OptionValues with Inside with Inspectors with BeforeAndAfterEachTestData
   }
 
   def buildLocalReadableStream(streamName: String): LocalReadableStream = {
-    new LocalReadableStreamSpec(streamName).buildReadableStream.asInstanceOf[LocalReadableStream]
+    new ReadableStreamSpec(streamName).buildReadableStream.asInstanceOf[LocalReadableStream]
   }
 
   def buildLocalWritableStream(streamName: String): LocalWritableStream = {
-    new LocalWritableStreamSpec(streamName).buildWritableStream.asInstanceOf[LocalWritableStream]
+    new WritableStreamSpec(streamName).buildWritableStream.asInstanceOf[LocalWritableStream]
   }
 
   def buildUnitSchedulableTask: SchedulableTask[Int] = {

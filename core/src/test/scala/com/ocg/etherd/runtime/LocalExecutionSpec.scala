@@ -2,7 +2,6 @@ package com.ocg.etherd.runtime
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
-import akka.actor.{Actor, ActorRef, ActorSystem, ActorSelection}
 import akka.pattern.ask
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
@@ -10,12 +9,9 @@ import scala.concurrent.duration._
 import com.ocg.etherd.EtherdEnv
 import com.ocg.etherd.runtime.RuntimeMessages.{ExecutorList, GetRegisteredExecutors}
 import com.ocg.etherd.topology.Topology
-import com.ocg.etherd.messaging._
-import com.ocg.etherd.testbase.UnitSpec
 import com.ocg.etherd.streams._
 import com.ocg.etherd.testbase.UnitSpec
 import com.ocg.etherd.topology.Stage
-import scala.collection.mutable
 import scala.concurrent.Await
 
 /**
@@ -33,9 +29,9 @@ class LocalExecutionSpec extends UnitSpec {
 
     // build the topology and run it.
     val tp = Topology("topology")
-    tp.ingest(new LocalReadableStreamSpec("input_stream1")).map(e => Event(e.getKey, e.getRecord.getRaw, e.getOrder))
+    tp.ingest(new ReadableStreamSpec("input_stream1")).map(e => Event(e.getKey, e.getRecord.getRaw, e.getOrder))
       .dropByKeys(List("#baddata"))
-      .sink(new LocalWritableStreamSpec("final_destination"))
+      .sink(new WritableStreamSpec("final_destination"))
     tp.run()
 
     // wait for executors to start
@@ -65,7 +61,7 @@ class LocalExecutionSpec extends UnitSpec {
     }
    }
 
-   it should "with multiple stages keep processing events to the destination output stream until stopped" in {
+   it should "with multiple stages process events and sink to destination output" in {
     // start the cluster manager
     val cmActor = ClusterManager.start()
 
@@ -74,11 +70,56 @@ class LocalExecutionSpec extends UnitSpec {
 
     // build the topology and run it.
     val tp = Topology("topology")
-    val spn = tp.ingest(new LocalReadableStreamSpec("input_stream1"))
+    val spn = tp.ingest(new ReadableStreamSpec("input_stream1"))
       .map(e => Event(e.getKey, e.getRecord.getRaw, e.getOrder))
       .dropByKeys(List("#baddata"))
       .sink(buildPass)
-      .sink(new LocalWritableStreamSpec("final_destination"))
+      .sink(new WritableStreamSpec("final_destination"))
+    val stageList = ListBuffer.empty[Stage]
+    tp.run()
+
+    // wait for executors to start and the topology to process events
+    Thread.sleep(1000)
+
+    try {
+      // ask the clusterManager if executor registrations are successful
+      val f = cmActor.ask(GetRegisteredExecutors("topology"))(1 seconds).mapTo[ExecutorList]
+      val registeredExecutors = Await.result(f, 1 seconds)
+      registeredExecutors.executors.size should equal (2)
+
+      // write events into the ingestion stream
+      produceEvents("input_stream1", 10)
+      Thread.sleep(100)
+      //hope the events make it to the destination
+      destinationStore.size should equal (10)
+
+      // write more events the ingestion stream
+      produceEvents("input_stream1", 10)
+      Thread.sleep(100)
+
+      //hope again we have the new events make it to the destination
+      destinationStore.size should equal (20)
+    }
+    finally{
+      cmShutdown()
+      shutdownTasks(EtherdEnv.get)
+    }
+  }
+
+   it should "with multiple stages each with 4 partitions process events and sink to destination output" in {
+    // start the cluster manager
+    val cmActor = ClusterManager.start()
+
+    // final destination sink
+    val destinationStore = buildDummyDestinationStream("final_destination")
+
+    // build the topology and run it.
+    val tp = Topology("topology")
+    val spn = tp.ingest(new ReadableStreamSpec("input_stream1"))
+      .map(e => Event(e.getKey, e.getRecord.getRaw, e.getOrder))
+      .dropByKeys(List("#baddata"))
+      .sink(buildPass)
+      .sink(new WritableStreamSpec("final_destination"))
     val stageList = ListBuffer.empty[Stage]
     tp.run()
 
@@ -118,19 +159,19 @@ class LocalExecutionSpec extends UnitSpec {
 
     // build the topology and run it.
     val tp = Topology("testtopology1")
-    tp.ingest(new LocalReadableStreamSpec("input_stream1"))
+    tp.ingest(new ReadableStreamSpec("input_stream1"))
       .map(e => Event(e.getKey, e.getRecord.getRaw, e.getOrder))
       .dropByKeys(List("#baddata"))
       .sink(buildPass)
-      .sink(new LocalWritableStreamSpec("final_destination"))
+      .sink(new WritableStreamSpec("final_destination"))
     tp.run()
 
     // build another topology and run it.
     val tp2 = Topology("testtopology2")
-    tp2.ingest(new LocalReadableStreamSpec("input_stream2"))
+    tp2.ingest(new ReadableStreamSpec("input_stream2"))
       .map(e => Event(e.getKey, e.getRecord.getRaw, e.getOrder))
       .sink(buildPass)
-      .sink(new LocalWritableStreamSpec("final_destination"))
+      .sink(new WritableStreamSpec("final_destination"))
     tp2.run()
 
     //wait for executors to start
