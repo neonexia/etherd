@@ -29,7 +29,8 @@ private[etherd] class Stage(spn: SPN) extends PartitioningPolicy with Serializab
 
   def setTopologyId(id: String) = this.topologyId = Some(id)
 
-  def setTopologyExecutionManagerActorUrl(topologyExecutionManagerActorUrl: String) = this.topologyExecutionManagerActorUrl = Some(topologyExecutionManagerActorUrl)
+  def setTopologyExecutionManagerActorUrl(topologyExecutionManagerActorUrl: String) =
+    this.topologyExecutionManagerActorUrl = Some(topologyExecutionManagerActorUrl)
 
   def getTopologyExecutionManagerActorUrl = this.topologyExecutionManagerActorUrl
 
@@ -37,7 +38,8 @@ private[etherd] class Stage(spn: SPN) extends PartitioningPolicy with Serializab
 
   def buildTasks: Iterator[SchedulableTask[StageSchedulingInfo]] = {
     this.applyPolicy.map { case (partition, resourceAsk) =>
-      val schedulingInfo = StageSchedulingInfo(this.getStageId.get, partition, this.getTopologyId.get, this.getTopologyExecutionManagerActorUrl.get)
+      val schedulingInfo = StageSchedulingInfo(this.getStageId.get, partition,
+        this.getTopologyId.get, this.getTopologyExecutionManagerActorUrl.get)
       new SchedulableTask[StageSchedulingInfo](schedulingInfo, resourceAsk)
     }.iterator
   }

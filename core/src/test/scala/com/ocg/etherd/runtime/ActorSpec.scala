@@ -38,7 +38,7 @@ class ActorSpec extends UnitSpec {
     // build stages
     val stageList = mutable.ListBuffer.empty[Stage]
     buildPass.buildStages(stageList)
-
+    stageList.foreach { stage => stage.setDefaultPartitionSize(2) }
     stageList.toList.size should equal (1)
 
     // cluster manager system
@@ -53,7 +53,7 @@ class ActorSpec extends UnitSpec {
       // ask the clusterManager if registrations happened for topology
       val f = cmActor.ask(GetRegisteredExecutors("topology"))(1 seconds).mapTo[ExecutorList]
       val registeredExecutors = Await.result(f, 1 seconds)
-      registeredExecutors.executors.size should equal (1)
+      registeredExecutors.executors.size should equal (1 * 2) // stages * partitions
     }
     finally {
       // shutdown clean
@@ -69,10 +69,11 @@ class ActorSpec extends UnitSpec {
     // build stages
     val stageList = mutable.ListBuffer.empty[Stage]
     val passThrough = buildPass
-    passThrough.sink(buildFilter("#badata"))
+    passThrough.sink(buildFilter("#badata")).sink(buildPass)
     passThrough.buildStages(stageList)
+    stageList.foreach { stage => stage.setDefaultPartitionSize(4) }
 
-    stageList.toList.size should equal (2)
+    stageList.toList.size should equal (3)
 
     // cluster manager system
     val cmActor = ClusterManager.start()
@@ -86,7 +87,7 @@ class ActorSpec extends UnitSpec {
       // ask the clusterManager if registrations happened for topology
       val f = cmActor.ask(GetRegisteredExecutors("topology"))(1 seconds).mapTo[ExecutorList]
       val registeredExecutors = Await.result(f, 1 seconds)
-      registeredExecutors.executors.size should equal (2)
+      registeredExecutors.executors.size should equal (3 * 4) // stages * partitions
     }
     finally {
       // shutdown clean
@@ -107,6 +108,7 @@ class ActorSpec extends UnitSpec {
     val passThrough2 = buildPass
     passThrough2.sink(buildFilter("#badata"))
     passThrough2.buildStages(stageList2)
+    stageList2.foreach { stage => stage.setDefaultPartitionSize(2)}
 
     stageList1.toList.size should equal (2)
     stageList2.toList.size should equal (2)
@@ -117,20 +119,20 @@ class ActorSpec extends UnitSpec {
     try {
       // submit stages and wait for execution manager child actor to start
       // and executors to register with the execution manager
-      cmActor ! SubmitStages("topology", stageList1.toList)
-      cmActor ! SubmitStages("topology1", stageList2.toList)
+      cmActor ! SubmitStages("topology1", stageList1.toList)
+      cmActor ! SubmitStages("topology2", stageList2.toList)
       Thread.sleep(2000)
 
 
       // ask the clusterManager if registrations happened for topology
-      var f = cmActor.ask(GetRegisteredExecutors("topology"))(1 seconds).mapTo[ExecutorList]
+      var f = cmActor.ask(GetRegisteredExecutors("topology1"))(1 seconds).mapTo[ExecutorList]
       var registeredExecutors = Await.result(f, 1 seconds)
-      registeredExecutors.executors.size should equal (2)
+      registeredExecutors.executors.size should equal (2 * 1) // stages * partitions
 
       // ask the clusterManager if registrations happened for topology
-      f = cmActor.ask(GetRegisteredExecutors("topology1"))(1 seconds).mapTo[ExecutorList]
+      f = cmActor.ask(GetRegisteredExecutors("topology2"))(1 seconds).mapTo[ExecutorList]
       registeredExecutors = Await.result(f, 1 seconds)
-      registeredExecutors.executors.size should equal (2)
+      registeredExecutors.executors.size should equal (2 * 2) // stages * partitions
     }
     finally {
       // shutdown clean

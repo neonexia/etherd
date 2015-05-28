@@ -6,8 +6,8 @@ import com.ocg.etherd.runtime.StageExecutionContext
 import scala.concurrent.duration._
 import akka.actor._
 import akka.actor.SupervisorStrategy._
-import akka.event.Logging
-import com.ocg.etherd.runtime.RuntimeMessages.{ExecuteStage, ExecutorData, RegisterExecutor}
+import com.ocg.etherd.Logging
+import com.ocg.etherd.runtime.RuntimeMessages.{RunStage, ExecuteStage, ExecutorData, RegisterExecutor}
 import com.ocg.etherd.runtime.akkautils._
 import com.ocg.etherd.runtime.scheduler.SchedulableTask
 import com.ocg.etherd.topology.{Stage, StageSchedulingInfo}
@@ -23,34 +23,37 @@ import scala.util.Random
  * @param port
  * @param topologyExecutionManagerActor
  */
-private[etherd] class Executor(executorId: String, stageSchedulingInfo:StageSchedulingInfo,
-               host:String, port: Int, topologyExecutionManagerActor: ActorSelection) extends Actor  {
+private[etherd] class Executor(executorId: String,
+                               stageSchedulingInfo:StageSchedulingInfo,
+                               host:String,
+                               port: Int,
+                               topologyExecutionManagerActor: ActorSelection) extends Actor with Logging {
   val workerIdInc = new AtomicInteger(1)
-  val log = Logging(context.system, executorId)
   val executorActorUrl = self.path.toStringWithAddress(RemoteAddressExtension(context.system).address)
-  log.info(s"Starting executor at $executorActorUrl")
+  // child actors
+  var stageExecutionActor: Option[ActorRef] = None // child actor that will run the stage
 
   /**
    * For now for all exceptions we will just resume and delegate the rest to the parent
    * ?? this needs to change after putting some thought here.
    */
   override val supervisorStrategy = OneForOneStrategy() {
-      case _: ActorInitializationException => {
-        log.warning(s"ActorInitializationException for executor $executorActorUrl")
-        // failed to create the actor. Notify execution manager that we could not start the stage
-        Stop
-      }
-      case _: ActorKilledException => {
-        log.warning(s"ActorKilledException for executor $executorActorUrl")
-        //we should just ignore here unless we did not know apriori about it
-        Stop
-      }
-      case ex: Exception =>  {
-        log.warning("Executor supervisor strategy restarting the child actor:" + ex.toString)
-        // ?? restrict number of retries
-        Restart
-      }
+    case _: ActorInitializationException => {
+      logWarning(s"ActorInitializationException for executor $executorActorUrl")
+      // failed to create the actor. Notify execution manager that we could not start the stage
+      Stop
     }
+    case _: ActorKilledException => {
+      logWarning(s"ActorKilledException for executor $executorActorUrl")
+      //we should just ignore here unless we did not know apriori about it
+      Stop
+    }
+    case ex: Exception => {
+      logWarning("Executor supervisor strategy restarting the child actor:" + ex.toString)
+      // ?? restrict number of retries
+      Restart
+    }
+  }
 
   /**
    * Akka calls this the first time when the actor starts and also after a restart
@@ -59,8 +62,11 @@ private[etherd] class Executor(executorId: String, stageSchedulingInfo:StageSche
    * 3. Wait for ExecuteStage message
    */
   override def preStart() = {
-    log.info(s"ExecutorId: $executorId. Sending registration to execution manager")
-    val executorData =  ExecutorData(executorId, stageSchedulingInfo.stageId, stageSchedulingInfo.partition, host, port, Some(this.executorActorUrl))
+    // ?? create the event manager actor
+    // ?? create log manager actor
+    // ?? create state manager actor
+    logDebug(s"Starting executor actor: $executorId. Sending registration to execution manager")
+    val executorData = ExecutorData(executorId, stageSchedulingInfo.stageId, stageSchedulingInfo.partition, host, port, Some(this.executorActorUrl))
     this.topologyExecutionManagerActor ! RegisterExecutor(stageSchedulingInfo.topologyId, executorData)
   }
 
@@ -71,32 +77,45 @@ private[etherd] class Executor(executorId: String, stageSchedulingInfo:StageSche
    */
   override def preRestart(reason: Throwable, message: Option[Any]) = {
     val reasonStr = reason.toString
-    log.info(s"ExecutorId: $executorId restarted because $reasonStr")
+    logInfo(s"ExecutorId: $executorId restarted because $reasonStr")
+    super.preRestart(reason, message)
   }
 
   override def postStop() = {
-    log.info(s"ExecutorId: $executorId stopping")
+    logDebug(s"ExecutorId: $executorId stopping")
   }
 
   def receive = {
     case ExecuteStage(stage: Stage) => synchronized {
-      val stageId = stage.stageId.get
-      log.info(s"Executor: $executorId. Received ExecuteStage with stageId $stageId")
-      assert(stageId==this.stageSchedulingInfo.stageId, "We should get the same stageId that we registered with")
+      this.stageExecutionActor match {
+        case Some(actor) => {
+          logError(s"Worker Actor already started for executor $executorId")
+        }
+        case None => {
+          this.tryRunStage(stage)
+        }
+      }
+    }
+    case _ => logError("Unknown message received")
+  }
 
-      // create a new child actor and delegate the stage execution to it
+  private def tryRunStage(stage: Stage): Unit = {
+      val stageId = stage.stageId.get
+      logDebug(s"Executor: $executorId. Starting worker actor")
+      assert(stageId == this.stageSchedulingInfo.stageId, "We should get the same stageId that we registered with")
+
+      // create a worker actor and delegate the stage execution to it
       val executorWorker = Utils.buildExecutorWorkerActor(context,
         this.workerIdInc.getAndIncrement,
         this.executorId,
         StageExecutionContext(stage, this.stageSchedulingInfo.partition)
       )
-    }
-    case _ => log.error("Unknown message received")
+      executorWorker ! RunStage
+      this.stageExecutionActor = Some(executorWorker)
   }
 }
 
 object Executor {
-
   def startNew(schedulable: SchedulableTask[_]): ActorSystem = synchronized  {
     val stageScheduleInfo = schedulable.asInstanceOf[SchedulableTask[StageSchedulingInfo]].getTaskInfo
     val topologyExecutionManagerActorUrl = stageScheduleInfo.topologyExecutionManagerActorUrl

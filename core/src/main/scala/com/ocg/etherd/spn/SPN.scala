@@ -195,24 +195,27 @@ abstract class SPN(spnId: Int, topologyName: String) extends Serializable with L
    * The partition
    */
   private[etherd] def initialize(partition: Int = 0): Unit = {
-    logInfo(s"SPN-$spnId for topology $topologyName: Begin process streams")
+    logDebug(s"SPNID:$spnId for topology $topologyName: Begin process streams for partition: $partition")
 
     // Build all the streams from their specs
     this.reBuildStreamsFromSpecs()
 
     //init default output stream
     this.defaultOutStream.map { stream => {
-      logInfo(s"SPN-$spnId for topology $topologyName: Init default outstream:" + stream.topic)
+      logDebug(s"SPNID:$spnId for topology $topologyName: init default outstream:" + stream.topic)
       stream.init(partition)
     }
     }
 
     // init all external output streams
-    this.externalOstreams.foreach { stream => stream.init(partition)}
+    this.externalOstreams.foreach {
+
+      stream => stream.init(partition)
+    }
 
     // init all input streams. SPN should be ready to process events once init completes
     this.istreams.foreach { stream => {
-      logInfo(s"SPN-$spnId for topology $topologyName: Calling init for input stream:" + stream.topic.toString)
+      logDebug(s"SPNID:$spnId for topology $topologyName: Calling init for input stream:" + stream.topic.toString)
       stream.subscribe((topic: String, event: Event) => {
         processEvent(topic, event)
         true

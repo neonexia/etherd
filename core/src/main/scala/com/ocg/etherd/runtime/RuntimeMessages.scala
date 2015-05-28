@@ -14,6 +14,9 @@ object RuntimeMessages {
   case class Report(topologyName: String)
   case class ExecuteStage(stage: Stage)
 
+  // Executor --> ExecutorWroker
+  case class RunStage()
+
   // Executor --> TopologyExecutionManager
   case class ExecutorData(executorId: String, stageId: Int, partition: Int, host: String, port: Int, executorUrl: Option[String]=None) extends Serializable
 

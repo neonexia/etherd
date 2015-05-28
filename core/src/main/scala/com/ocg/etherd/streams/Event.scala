@@ -1,6 +1,8 @@
 package com.ocg.etherd.streams
 
 import java.nio.ByteBuffer
+import com.ocg.etherd.streams.Event
+
 import scala.reflect.{ClassTag, classTag}
 
 class Tuple(record: Array[Byte]) {
@@ -57,6 +59,10 @@ object Event {
 
   def apply(key: Array[Byte], record: Array[Byte], order: Long): Event = {
     new Event(key, Tuple(record), order)
+  }
+
+  def clone(ev: Event): Event  = {
+    Event(ev.getKey, ev.getRecord.getRaw, ev.getOrder)
   }
 
   def keyAsString(event: Event) : String = {

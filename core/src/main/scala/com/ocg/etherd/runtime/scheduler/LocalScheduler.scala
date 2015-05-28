@@ -1,46 +1,39 @@
 package com.ocg.etherd.runtime.scheduler
 
 import java.util.concurrent.{Executors, ExecutorService}
-import com.ocg.etherd.EtherdEnv
 import com.ocg.etherd.runtime.executor.Executor
-
+import com.ocg.etherd.util.HostUtil
 import scala.collection.mutable
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import akka.actor.ActorSystem
-import com.ocg.etherd.topology.Stage
 
 /**
- * Local scheduler that runs tasks on local thread pool. Unless explicitly specified limits itself to the
- * number of machine cores and 60% of max available JVM memory(-Xmx)
+ * Local scheduler that runs tasks on local thread pool.
+ * Sets available processors to some high number and 60% of max available JVM memory(-Xmx)
  */
-private[etherd] class LocalScheduler(cores: Int, memoryFraction: Int) extends Scheduler {
-  val hostResource = ClusterResource(maxCores, maxMemory, "localhost")
-  val pool: ExecutorService = Executors.newFixedThreadPool(maxCores)
+private[etherd] class LocalScheduler(maxCores: Int, memoryFraction: Int) extends Scheduler {
+  val hostResource = ClusterResource(usableCores, maxMemory, "localhost")
+  val pool: ExecutorService = Executors.newFixedThreadPool(usableCores)
   val executorList =  mutable.ListBuffer.empty[ActorSystem]
 
   def this() = this(0, 60)
 
-  def maxCores = {
-    if (cores == 0)
-      Runtime.getRuntime.availableProcessors
+  def usableCores: Int = {
+    if (maxCores == 0)
+      // some high number
+      100
     else
-      Math.min(cores, Runtime.getRuntime.availableProcessors)
+      Math.min(maxCores, HostUtil.availableCores)
   }
 
-  def maxMemory = {
-    if (memoryFraction == 0)
-      (Runtime.getRuntime.maxMemory() / 1000).asInstanceOf[Int]
-    else
-      (Runtime.getRuntime.maxMemory() / 1000 * memoryFraction / 100).asInstanceOf[Int]
+  def maxMemory: Int = {
+    HostUtil.maxMemoryG(memoryFraction)
   }
 
   def reviveOffers(): Unit = {
-    logInfo("Revive offers")
     val schedulableTasks = this.getCandidateTasks(hostResource)
     schedulableTasks.foreach { schedulable => {
         try {
-          logInfo("Local thread pool...starting executor")
+          logDebug("Local thread pool...starting executor")
           val executor = Executor.startNew(schedulable)
           executorList += executor
         }

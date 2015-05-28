@@ -2,32 +2,36 @@ package com.ocg.etherd.runtime
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import com.typesafe.config.ConfigFactory
-import akka.actor.{Actor, ActorRef, ActorSystem, ActorSelection}
+import akka.actor.{Actor, ActorRef, ActorSystem}
 import akka.pattern.ask
-import akka.event.Logging
 import com.ocg.etherd.runtime.akkautils.Utils
-import com.ocg.etherd.EtherdEnv
+import com.ocg.etherd.{Logging, EtherdEnv}
 import com.ocg.etherd.runtime.RuntimeMessages._
 import com.ocg.etherd.topology.Stage
 
 import scala.collection.mutable
-import scala.util.Random
 
-class ClusterManager(clusterManagerActorUrlBase: String) extends Actor {
-  val log = Logging(context.system, this)
+/**
+ * ClusterManager runs as a master daemon on the cluster and acts as the primary interface for etherd clients
+ * 1. Loads configuration and initializes services like scheduler, message bus, state manager, eventing, logging etc.
+ * 2. Receives topology specifications from clients and submits them to the scheduler
+ * 3. Responds to requests for topology runtime status and cluster health
+ * 4. Stores/Loads all state via the state manager and hence can recover from failures.
+ * @param clusterManagerActorUrlBase
+ */
+class ClusterManager(clusterManagerActorUrlBase: String) extends Actor with Logging{
   val topologyManagersMap = mutable.HashMap.empty[String, ActorRef]
 
   def receive = {
-    case SubmitStages(topologyName: String, stages: List[Stage]) => synchronized {
-      log.info("Received Message SubmitStages")
+    case SubmitStages(topologyName: String, stages: List[Stage]) => {
+      logInfo("Received Message SubmitStages")
       this.topologyManagersMap.get(topologyName) match {
         case Some(actorRef) => {
-          log.info("topology already executing. Ignoring request")
+          logDebug("topology already executing. Ignoring request")
         }
         case None => {
           try {
-            log.info(s"Received Submit Stages for topology $topologyName")
+            logDebug(s"Received Submit Stages for topology $topologyName")
             val actorName = s"topologyExecutionManagerActor_$topologyName"
             val executionManagerActorUrl = s"$clusterManagerActorUrlBase/executionManagerActor_$topologyName"
             val executionManagerActor = Utils.buildExecutionManagerActor(context, topologyName, executionManagerActorUrl, s"executionManagerActor_$topologyName")
@@ -36,17 +40,17 @@ class ClusterManager(clusterManagerActorUrlBase: String) extends Actor {
           }
           catch {
             case e:Exception => {
-              log.error(e, "Exception creating topology execution manager")
+              logError("Exception creating topology execution manager", e)
             }
           }
         }
       }
     }
     case GetRegisteredExecutors(topologyName: String) => {
-      log.info(s"Received message GetRegisteredExecutors for topology $topologyName")
+      logDebug(s"Received message GetRegisteredExecutors for topology $topologyName")
       this.topologyManagersMap.get(topologyName) match {
         case Some(actorRef) => {
-          log.info("await result from executionActor")
+          logInfo("await result from executionActor")
           sender ! Await.result(actorRef.ask(GetRegisteredExecutors(topologyName))(1 seconds).mapTo[ExecutorList], 1 seconds)
         }
         case None => {

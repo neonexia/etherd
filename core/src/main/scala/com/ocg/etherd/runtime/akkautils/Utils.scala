@@ -13,7 +13,7 @@ import scala.concurrent.duration._
 object Utils extends Logging{
 
   def buildActorSystem(systemName: String, port: Int): ActorSystem = {
-    logInfo(s"buildActorSystem with name $systemName")
+    logDebug(s"buildActorSystem with name $systemName")
     val confFile = new java.io.File(getClass.getResource("/application.conf").getPath)
     val config = ConfigFactory.parseString(s"akka.remote.netty.tcp.port=$port").withFallback(ConfigFactory.parseFile(confFile))
     ActorSystem(systemName, config)
@@ -28,13 +28,13 @@ object Utils extends Logging{
   }
 
   def buildExecutorActor(exSystem: ActorSystem, executorId: String, stageSchedulingInfo: StageSchedulingInfo, host:String, port: Int): ActorRef = {
-    logInfo(s"buildExecutorActor: Creating supervisor executor actor $executorId")
+    logDebug(s"buildExecutorActor: Creating supervisor executor actor $executorId")
     exSystem.actorOf(Props(new Executor(executorId, stageSchedulingInfo:StageSchedulingInfo,
                            host, port, exSystem.actorSelection(stageSchedulingInfo.topologyExecutionManagerActorUrl))), name = executorId)
   }
 
   def buildExecutorWorkerActor(context:ActorContext, workerId:Int, executorId: String, executionContext: StageExecutionContext): ActorRef = {
-    logInfo(s"buildExecutorWorkerActor: Creating executor worker actor with executorId:$executorId and workerId:$workerId")
+    logDebug(s"buildExecutorWorkerActor: Creating executor worker actor with executorId:$executorId and workerId:$workerId")
     context.actorOf(Props(new ExecutorWorker(workerId, executorId, executionContext)))
   }
 

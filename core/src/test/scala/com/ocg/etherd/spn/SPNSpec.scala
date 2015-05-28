@@ -2,9 +2,10 @@ package com.ocg.etherd.spn
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
+import com.ocg.etherd.runtime.scheduler.SchedulableTask
 import com.ocg.etherd.testbase.UnitSpec
 import com.ocg.etherd.streams._
-import com.ocg.etherd.topology.Stage
+import com.ocg.etherd.topology.{StageSchedulingInfo, Stage}
 import scala.collection.mutable
 
 /**
@@ -159,9 +160,12 @@ class SPNSpec extends UnitSpec {
     var finalStageList = mutable.ListBuffer.empty[Stage]
     ingestion.buildStages(finalStageList)
     finalStageList.size should equal (3)
-    finalStageList.foreach {stage =>
+    finalStageList.foreach { stage =>
       stage.setDefaultPartitionSize(2)
-      getStageTasks(stage).size should equal (2)
+      val tasks = getStageTasks(stage).toList
+      tasks.size should equal (2)
+      tasks.head.getTaskInfo[StageSchedulingInfo].partition should equal (0)
+      tasks(1).getTaskInfo[StageSchedulingInfo].partition should equal (1)
     }
   }
 

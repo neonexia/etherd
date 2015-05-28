@@ -1,27 +1,33 @@
 package com.ocg.etherd.topology
 
-import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.mutable
 import com.ocg.etherd.{Logging, EtherdEnv}
 import com.ocg.etherd.spn.{SPN, EventOps}
 import com.ocg.etherd.runtime.RuntimeMessages.SubmitStages
-import com.ocg.etherd.streams.EventStreamSpec
+import com.ocg.etherd.streams.{ReadableStreamSpec, EventStreamSpec}
 
 /**
- * A Topology is a specification of how streams and processing nodes be composed to process events.
- * Topologies can be further composed together to form higher-order topologies.
- * It exposes user facing API's to express computation that will eventually run on a cluster
- * by the scheduler. When a topology is run the internal flow is
- * 1. Build stages
+ * A Topology is a specification of how streams and processing nodes will be composed to process events.
+ * Topologies can be further composed together to form more complex topologies.
+ * The class will be the primary enrty for user facing APIs.
+ * When a topology is run the internal flow is to create a topology runnable instance that will:
+ * 1. Compile the specification into a stages and optionally run it through an optimizer(Optimizer is furture work)
  * 2. Setup event listeners for tracking topology execution
  * 3. Submit the stages to the cluster manager for execution
  * 4. Cluster Manager calls te schduler to allocate resources
  * 5. Execute stages as tasks on those resources
+ * @param topologyName
+ * @param defaultPartitions
  */
-class Topology(topologyName: String, defaultParallelism:Int = 1 /*?? from constants */) extends Logging {
+class Topology(topologyName: String, defaultPartitions: Int = 1 /*?? from constants */)
+  extends Runnable with Logging  {
   var topologySubmitted = false
   val env = EtherdEnv.get
   val ingestSpn = EventOps.pass(this.topologyName)
+
+  def ingest(topic: String) : SPN = {
+    this.ingest(new ReadableStreamSpec(topic))
+  }
 
   def ingest(istreamSpec: EventStreamSpec) : SPN = {
     this.ingestSpn.attachInputStreamSpec(istreamSpec)
@@ -33,24 +39,25 @@ class Topology(topologyName: String, defaultParallelism:Int = 1 /*?? from consta
     this.ingestSpn
   }
 
-  def run(): Unit = {
-    if (topologySubmitted)
-      return
+  override def run(): Unit = {
+    if (!topologySubmitted) {
+      topologySubmitted = true
 
-    topologySubmitted = true
-    val stages = {
-      val stageList = mutable.ListBuffer.empty[Stage]
-      this.ingestSpn.buildStages(stageList)
-      stageList.foreach {stage => stage.setDefaultPartitionSize(defaultParallelism)}
-      stageList.toList
+      val stages = {
+        val stageList = mutable.ListBuffer.empty[Stage]
+        this.ingestSpn.buildStages(stageList)
+        stageList.toList
+      }
+      logInfo(s"Number of stages for topology: $topologyName: " + stages.size)
+
+      stages.foreach { stage => stage.setDefaultPartitionSize(defaultPartitions) }
+      this.env.getClusterManagerRef ! SubmitStages(this.topologyName, stages)
     }
-    logInfo(s"Number of stages for topology: $topologyName =" + stages.size)
-    this.env.getClusterManagerRef ! SubmitStages(this.topologyName, stages)
   }
 }
 
 object Topology {
-  def apply(name: String): Topology = {
-    new Topology(name)
+  def apply(name: String, defaultPartitions: Int = 1): Topology = {
+    new Topology(name, defaultPartitions)
   }
 }
