@@ -58,7 +58,6 @@ class LocalExecutionSpec extends UnitSpec {
     }
     finally{
       cmShutdown()
-      shutdownTasks(EtherdEnv.get)
     }
    }
 //
@@ -103,7 +102,6 @@ class LocalExecutionSpec extends UnitSpec {
     }
     finally{
       cmShutdown()
-      shutdownTasks(EtherdEnv.get)
     }
   }
 
@@ -155,11 +153,10 @@ class LocalExecutionSpec extends UnitSpec {
     }
     finally{
       cmShutdown()
-      shutdownTasks(EtherdEnv.get)
     }
   }
 
-  "2 topologies" should "each with multiple stages when run in parallel should process events" in {
+  "Multiple topologies" should "each with multiple stages when run in parallel should process events" in {
     // start the cluster manager
     val cmActor = ClusterManager.start()
     // final destination sink
@@ -195,7 +192,6 @@ class LocalExecutionSpec extends UnitSpec {
     }
     finally{
       cmShutdown()
-      shutdownTasks(EtherdEnv.get)
     }
   }
 
@@ -255,7 +251,6 @@ class LocalExecutionSpec extends UnitSpec {
     }
     finally{
       cmShutdown()
-      shutdownTasks(EtherdEnv.get)
     }
   }
 }

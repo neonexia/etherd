@@ -28,11 +28,10 @@ class ActorSpec extends UnitSpec {
     }
     finally {
       cmShutdown()
-      shutdownTasks(EtherdEnv.get)
     }
   }
 
-  "A single executor" should "register with cluster manager on startup" in {
+  "A single executor" should "register with topology execution manager on startup" in {
     val env = EtherdEnv.get
 
     // build stages
@@ -59,11 +58,10 @@ class ActorSpec extends UnitSpec {
       // shutdown clean
       println("shutdown executor systems")
       cmShutdown()
-      shutdownTasks(env)
     }
   }
 
-  "Multiple Executors" should "register with cluster manager on startup" in {
+  "Multiple Executors" should "register with topology execution manager on startup" in {
     val env = EtherdEnv.get
 
     // build stages
@@ -92,11 +90,10 @@ class ActorSpec extends UnitSpec {
     finally {
       // shutdown clean
       cmShutdown()
-      shutdownTasks(env)
     }
   }
 
-  "it" should "when spawned by multiple topologies should register with cluster manager on startup" in {
+  "it" should "when spawned by multiple topologies should register with respective topology execution manager on startup" in {
     val env = EtherdEnv.get
 
     val stageList1 = mutable.ListBuffer.empty[Stage]
@@ -137,7 +134,6 @@ class ActorSpec extends UnitSpec {
     finally {
       // shutdown clean
       cmShutdown()
-      shutdownTasks(env)
     }
   }
 }

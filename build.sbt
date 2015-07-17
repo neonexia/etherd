@@ -1,13 +1,15 @@
 import sbt._
 import sbt.Keys._
 
-name := "etherd"
+lazy val topLevelSettings = Seq (
+  organization := "ocg",
+  name := "etherd",
+  version := "1.0",
+  scalaVersion := "2.11.4"
+)
 
-version := "1.0"
+lazy val root = project.in(file(".")).settings(topLevelSettings).aggregate(core)
 
-scalaVersion := "2.11.4"
-
-lazy val root = project.in(file(".")).aggregate(core)
 
 lazy val core = project.settings(
   libraryDependencies += "org.fluentd" % "fluent-logger" % "0.2.10",

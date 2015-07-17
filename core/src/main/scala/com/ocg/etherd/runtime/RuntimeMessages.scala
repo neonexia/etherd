@@ -6,9 +6,12 @@ object RuntimeMessages {
 
   // Client --> ClusterManager
   case class SubmitStages(topologyName: String, stages: List[Stage]) extends Serializable
+  case class ShutdownTopology(topologyName: String)
 
   //ClusterManager --> TopologyExecutionManager
   case class ScheduleStages(stages: List[Stage])
+  case class ControlledShutdown(shutdownReason: String)
+  case class SystemShutdown(shutdownReason: String)
 
   // TopologyExecutionManager --> Executor
   case class Report(topologyName: String)
@@ -18,7 +21,8 @@ object RuntimeMessages {
   case class RunStage()
 
   // Executor --> TopologyExecutionManager
-  case class ExecutorData(executorId: String, stageId: Int, partition: Int, host: String, port: Int, executorUrl: Option[String]=None) extends Serializable
+  case class ExecutorData(executorId: String, stageId: Int, partition: Int, host: String, port: Int,
+                          executorUrl: Option[String]=None) extends Serializable
 
   case class RegisterExecutor(topologyName: String, executorData: ExecutorData) extends Serializable
 

@@ -19,7 +19,7 @@ import scala.collection.mutable
  * 4. Stores/Loads all state via the state manager and hence can recover from failures.
  * @param clusterManagerActorUrlBase
  */
-class ClusterManager(clusterManagerActorUrlBase: String) extends Actor with Logging{
+private[etherd] class ClusterManager(clusterManagerActorUrlBase: String) extends Actor with Logging{
   val topologyManagersMap = mutable.HashMap.empty[String, ActorRef]
 
   def receive = {
@@ -27,14 +27,15 @@ class ClusterManager(clusterManagerActorUrlBase: String) extends Actor with Logg
       logInfo("Received Message SubmitStages")
       this.topologyManagersMap.get(topologyName) match {
         case Some(actorRef) => {
-          logDebug("topology already executing. Ignoring request")
+          sender ! logDebug("topology already executing. Ignoring request")
         }
         case None => {
           try {
             logDebug(s"Received Submit Stages for topology $topologyName")
             val actorName = s"topologyExecutionManagerActor_$topologyName"
             val executionManagerActorUrl = s"$clusterManagerActorUrlBase/executionManagerActor_$topologyName"
-            val executionManagerActor = Utils.buildExecutionManagerActor(context, topologyName, executionManagerActorUrl, s"executionManagerActor_$topologyName")
+            val executionManagerActor = Utils.buildExecutionManagerActor(context, topologyName,
+              executionManagerActorUrl, s"executionManagerActor_$topologyName")
             topologyManagersMap += topologyName -> executionManagerActor
             executionManagerActor ! ScheduleStages(stages)
           }
@@ -46,6 +47,15 @@ class ClusterManager(clusterManagerActorUrlBase: String) extends Actor with Logg
         }
       }
     }
+
+    case ShutdownTopology(topologyName: String) => {
+      // if we have a tem for this topology then start the shutdown process
+      this.topologyManagersMap.get(topologyName).map {
+        this.topologyManagersMap -= topologyName
+        actorRef => this.context.stop(actorRef)
+      }
+    }
+
     case GetRegisteredExecutors(topologyName: String) => {
       logDebug(s"Received message GetRegisteredExecutors for topology $topologyName")
       this.topologyManagersMap.get(topologyName) match {

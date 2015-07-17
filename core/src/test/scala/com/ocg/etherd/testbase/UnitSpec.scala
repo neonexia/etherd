@@ -99,7 +99,7 @@ OptionValues with Inside with Inspectors with BeforeAndAfterEachTestData
   }
 
   def shutdownTasks(env: EtherdEnv): Unit = {
-    env.getScheduler.shutdownTasks()
+    // env.getScheduler.shutdownTasks()
   }
 
   override protected def beforeEach(testData: TestData): Unit = {
