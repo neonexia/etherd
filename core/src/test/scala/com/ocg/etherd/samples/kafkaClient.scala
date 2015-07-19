@@ -1,12 +1,16 @@
+package com.ocg.etherd.samples
+
 import java.util.Properties
-import java.util.concurrent.{Executors, ExecutorService}
-import scala.collection.mutable.Map
-import scala.collection.immutable.List
-import kafka.consumer.{ConsumerConfig, ConsumerIterator, KafkaStream}
+import java.util.concurrent.Executors
+
+import kafka.consumer.{ConsumerConfig, KafkaStream}
 import kafka.serializer.StringDecoder
 import org.apache.kafka.clients.producer._
 
-object Etherd {
+import scala.collection.immutable.List
+import scala.collection.mutable.Map
+
+object KafkaClient {
   def main(args: Array[String]): Unit ={
     new KafkaStreamReader(1, "")
     println("Consumer: Done")
@@ -17,8 +21,8 @@ object Etherd {
     val props = new Properties()
     props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9093")
     props.put(ProducerConfig.BATCH_SIZE_CONFIG, "1")
-    props.put("serializer.class", "kafka.serializer.StringEncoder");
-    val producer = new KafkaProducer(props)
+    props.put("serializer.class", "kafka.serializer.StringEncoder")
+    val producer = new KafkaProducer[Array[Byte], Array[Byte]](props)
 
     val k = "key1".getBytes
     val v = "val1".getBytes

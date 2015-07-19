@@ -12,6 +12,6 @@ object HostUtil {
     if (memoryFraction == 0)
       (Runtime.getRuntime.maxMemory() / 1000).asInstanceOf[Int]
     else
-      (Runtime.getRuntime.maxMemory() / 1000 * (memoryFraction / 100f)).asInstanceOf[Int]
+		((Runtime.getRuntime.maxMemory() / 1000) * (memoryFraction / 100f)).asInstanceOf[Int]
   }
 }

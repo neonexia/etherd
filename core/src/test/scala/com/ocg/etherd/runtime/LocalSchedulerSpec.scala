@@ -8,10 +8,10 @@ import com.ocg.etherd.testbase.UnitSpec
 */
 class LocalSchedulerSpec extends UnitSpec {
 
-  "A Scheduler" should "should should return the pending tasks equal to scheduled" in {
-    val scheduler = new LocalScheduler()
-    scheduler.getPendingTasks.size should equal (0)
-  }
+//  "A Scheduler" should "should should return the pending tasks equal to scheduled" in {
+//    val scheduler = new LocalScheduler()
+//    scheduler.getPendingTasks.size should equal (0)
+//  }
 //
 //  it should "return 3 matches when combined with sink stages and when offered a resource of 4 cores and 2GB RAM" in {
 //    val matches = tp.scheduler.consumeOfferedResources(ClusterResource(1,1))

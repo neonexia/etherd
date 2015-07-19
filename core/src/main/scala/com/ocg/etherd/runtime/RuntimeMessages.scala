@@ -1,14 +1,18 @@
 package com.ocg.etherd.runtime
 
+import com.ocg.etherd.runtime.scheduler.SchedulableTask
 import com.ocg.etherd.topology.Stage
 
-object RuntimeMessages {
+private[etherd] object RuntimeMessages {
 
   // Client --> ClusterManager
   case class SubmitStages(topologyName: String, stages: List[Stage]) extends Serializable
 
   //ClusterManager --> TopologyExecutionManager
   case class ScheduleStages(stages: List[Stage])
+
+  //* --> Scheduler
+  case class ScheduleTasks(tasks: Iterator[SchedulableTask[_]]) extends Serializable
 
   // TopologyExecutionManager --> Executor
   case class Report(topologyName: String)
@@ -26,7 +30,8 @@ object RuntimeMessages {
 
   case class StageExecutionScheduled(executorId: String, topologyName: String, stageId:Int)
 
-  //Debugging
+  //Test Hooks
   case class GetRegisteredExecutors(topologyName: String) extends Serializable
   case class ExecutorList(executors: List[ExecutorData]) extends Serializable
+  case class ShutdownAllScheduledTasks() extends Serializable
 }

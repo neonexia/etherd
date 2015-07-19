@@ -71,6 +71,7 @@ private[etherd] class Executor(executorId: String,
   }
 
   /**
+   * This is called when akka restarts the actor.
    * 1. Checkpoint state so we can correctly restart
    * @param reason
    * @param message

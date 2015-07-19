@@ -4,6 +4,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 import com.ocg.etherd.messaging._
 import com.ocg.etherd.runtime.ClusterManager
+import com.ocg.etherd.runtime.RuntimeMessages.ShutdownAllScheduledTasks
 import com.ocg.etherd.runtime.scheduler.{SchedulableTask, ResourceAsk}
 import com.ocg.etherd.topology.{StageSchedulingInfo, Stage}
 import org.scalatest._
@@ -99,7 +100,7 @@ OptionValues with Inside with Inspectors with BeforeAndAfterEachTestData
   }
 
   def shutdownTasks(env: EtherdEnv): Unit = {
-    env.getScheduler.shutdownTasks()
+    env.getClusterManagerRef ! ShutdownAllScheduledTasks
   }
 
   override protected def beforeEach(testData: TestData): Unit = {

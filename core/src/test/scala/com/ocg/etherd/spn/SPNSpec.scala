@@ -164,8 +164,8 @@ class SPNSpec extends UnitSpec {
       stage.setDefaultPartitionSize(2)
       val tasks = getStageTasks(stage).toList
       tasks.size should equal (2)
-      tasks.head.getTaskInfo[StageSchedulingInfo].partition should equal (0)
-      tasks(1).getTaskInfo[StageSchedulingInfo].partition should equal (1)
+      tasks.head.getTaskInfo.partition should equal (0)
+      tasks(1).getTaskInfo.partition should equal (1)
     }
   }
 

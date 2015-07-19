@@ -9,13 +9,10 @@ import com.ocg.etherd.runtime.scheduler.{Scheduler, LocalScheduler}
 import scala.util.Random
 
 class EtherdEnv(configuration: EtherdConf) {
-  val scheduler = this.resolveScheduler
   var defaultMessageBus = this.resolveDefaultMessageBus
   var tpClientActorSystem: Option[ActorSystem] = None
 
   def getConfiguration: EtherdConf = this.configuration
-
-  def getScheduler: Scheduler = this.scheduler
 
   def getDefaultMessageBus: DMessageBus = this.defaultMessageBus
 
@@ -27,10 +24,6 @@ class EtherdEnv(configuration: EtherdConf) {
         this.tpClientActorSystem.get.actorSelection(ClusterManager.clusterManagerActorUrl)
       }
     }
-  }
-
-  private def resolveScheduler = {
-    new LocalScheduler()
   }
 
   private def resolveDefaultMessageBus = {

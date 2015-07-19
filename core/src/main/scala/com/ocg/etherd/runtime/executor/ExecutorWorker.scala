@@ -6,8 +6,8 @@ import com.ocg.etherd.runtime.RuntimeMessages.RunStage
 import com.ocg.etherd.runtime.StageExecutionContext
 
 /**
- * Executor Worrker actor that will be started by the Executor Supervisor actor.
- * On start will start executing the stage
+ * Executor Worker actor that will be started by the Executor Supervisor actor.
+ * On start will begin stage execution
  */
 private[etherd] class ExecutorWorker(workerId:Int, executorId: String, executionContext: StageExecutionContext) extends Actor with Logging {
   val workerName = s"ExecutorWorker-$workerId-$executorId"

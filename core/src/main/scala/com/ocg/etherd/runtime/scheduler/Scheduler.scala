@@ -3,35 +3,35 @@ package com.ocg.etherd.runtime.scheduler
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.mutable.ListBuffer
+import akka.actor.Actor
 
-import com.ocg.etherd.{EtherdEnv, Logging}
+import com.ocg.etherd.Logging
+import com.ocg.etherd.runtime.RuntimeMessages.ScheduleTasks
 
 import scala.reflect.ClassTag
 
 /**
- * Scheduler base class for Resource manager specific concrete classes
+ * Scheduler actor base class
  */
-private[etherd] abstract class Scheduler extends Logging {
+private[etherd] trait Scheduler extends Actor with Logging {
+
   val submittedTaskQueue = new ConcurrentLinkedQueue[SchedulableTask[_]]()
-  type ReviveOffersType = () => Unit
 
-  def getPendingTasks = this.submittedTaskQueue
-
-  def submit(tasks: Iterator[SchedulableTask[_]]): Unit = {
-    logDebug("Submitting tasks for scheduling")
-    tasks.foreach { task => this.submittedTaskQueue.offer(task)}
-    this.reviveOffers()
+  // derived classes should delegate baseSchedulerReceive for unhandled message
+  def baseSchedulerReceive: Receive = {
+    case ScheduleTasks(tasks: Iterator[_]) => {
+      tasks.foreach { task => this.submittedTaskQueue.offer(task)}
+      //logInfo("Queuing tasks for scheduling. Queue size:" + this.submittedTaskQueue.size)
+      this.reviveOffers()
+    }
   }
 
   /**
    * Retrieves candidate tasks from the task queue that match the offered resource.
-   *
-   * Note: This method should be the only way that tasks retrieved from the queue so that we can manage multiple
-   * thread accessing this method here
    * @param offeredResource
    * @return
    */
-  protected def getCandidateTasks(offeredResource: ClusterResource): ListBuffer[SchedulableTask[_]] = synchronized {
+   def getCandidateTasks(offeredResource: ClusterResource): ListBuffer[SchedulableTask[_]] = {
     var schedulableTasks = new ListBuffer[SchedulableTask[_]]()
     val it = this.submittedTaskQueue.iterator
 
@@ -40,15 +40,13 @@ private[etherd] abstract class Scheduler extends Logging {
       if (task.canSchedule(offeredResource)) {
         schedulableTasks += task
         offeredResource.consumeCores(task.getResourceAsk.getCores)
-        offeredResource.consumeMemory(task.getResourceAsk.getMemory)
+        offeredResource.consumeMemory(task.getResourceAsk.getMemoryG)
       }
     }
-
     // if we have a matching tasks deque from the submitted Queue
     schedulableTasks.foreach { task =>
       this.submittedTaskQueue.remove(task)
     }
-
     schedulableTasks
   }
 
@@ -57,11 +55,11 @@ private[etherd] abstract class Scheduler extends Logging {
   def shutdownTasks(): Unit
 }
 
-class ResourceAsk(cores: Int, memory: Int) {
+class ResourceAsk(cores: Int, memoryG: Int) {
 
   def getCores = cores
-
-  def getMemory = memory
+  // memory in GB
+  def getMemoryG = memoryG
 }
 
 class ClusterResource(host: String) {
@@ -86,21 +84,6 @@ class ClusterResource(host: String) {
   }
 }
 
-class SchedulableTask[T: ClassTag](taskInfo: T, resourceAsk: ResourceAsk) {
-
-  def getResourceAsk = this.resourceAsk
-
-  def getTaskInfo = this.taskInfo
-
-  def getTaskInfo[U: ClassTag] = this.taskInfo.asInstanceOf[U]
-
-  def canSchedule(offeredResource: ClusterResource): Boolean = {
-    this.resourceAsk.getCores <= offeredResource.getCores &&
-    this.resourceAsk.getMemory <= offeredResource.getMemory
-  }
-}
-
-
 object ClusterResource {
   def apply(cores: Int, memory: Int, host: String): ClusterResource = {
     val r = new ClusterResource(host)
@@ -108,5 +91,17 @@ object ClusterResource {
     r.offerMemory(memory)
     r
   }
+}
+
+class SchedulableTask[T: ClassTag](taskInfo: T, resourceAsk: ResourceAsk) {
+
+    def getResourceAsk = this.resourceAsk
+
+    def getTaskInfo = this.taskInfo.asInstanceOf[T]
+
+    def canSchedule(offeredResource: ClusterResource): Boolean = {
+        this.resourceAsk.getCores <= offeredResource.getCores &&
+                this.resourceAsk.getMemoryG <= offeredResource.getMemory
+    }
 }
 

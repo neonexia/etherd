@@ -7,7 +7,12 @@ version := "1.0"
 
 scalaVersion := "2.11.4"
 
-lazy val root = project.in(file(".")).aggregate(core)
+lazy val root = project.in(file(".")).aggregate(core).settings (
+	libraryDependencies += "org.apache.kafka" % "kafka_2.10" % "0.8.2.1",
+	libraryDependencies += "org.apache.kafka" % "kafka-clients" % "0.8.2.1",
+	libraryDependencies += "com.yammer.metrics" % "metrics-core" % "2.2.0",
+	libraryDependencies += "com.yammer.metrics" % "metrics-annotation" % "2.2.0"
+)
 
 lazy val core = project.settings(
   libraryDependencies += "org.fluentd" % "fluent-logger" % "0.2.10",
@@ -16,6 +21,8 @@ lazy val core = project.settings(
   libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.2",
   libraryDependencies += "ch.qos.logback" % "logback-core" % "1.1.2",
   libraryDependencies += "com.101tec" % "zkclient" % "0.4",
+  libraryDependencies += "org.apache.kafka" % "kafka_2.10" % "0.8.2.1",
+  libraryDependencies += "org.apache.kafka" % "kafka-clients" % "0.8.2.1",
   libraryDependencies += "com.yammer.metrics" % "metrics-core" % "2.2.0",
   libraryDependencies += "com.yammer.metrics" % "metrics-annotation" % "2.2.0",
   libraryDependencies += "org.apache.hadoop" % "hadoop-common" % "2.2.0",

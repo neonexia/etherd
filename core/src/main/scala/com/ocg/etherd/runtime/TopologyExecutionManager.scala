@@ -13,15 +13,17 @@ import com.ocg.etherd.runtime.RuntimeMessages._
 import com.ocg.etherd.topology.Stage
 
 /**
- * Manages the execution lifecycle and monitoring of stages in a topology.
- * This is a seperate child Actor than the cluster manager. This can be run in process on the same node as the cluster
+ * Manages the execution lifecycle of stages in a topology.
+ * This is a child Actor of the cluster manager. This can be run in process on the same node as the cluster
  * manager or on a different node on the cluster or within a container managed by the resource manager itself eg: Yarn
  * @param topologyName
  * @param topologyExecutionManagerActorUrl
  */
-class TopologyExecutionManager(topologyName: String, topologyExecutionManagerActorUrl: String) extends Actor with Logging {
+class TopologyExecutionManager(topologyName: String,
+                               topologyExecutionManagerActorUrl: String,
+                               schedulerActor: ActorRef)
+      extends Actor with Logging {
   val env = EtherdEnv.get
-  val scheduler = this.env.getScheduler
   val stageIdInc = new AtomicInteger(1)
   val stageIdExecutorsMap = mutable.Map.empty[Int, ListBuffer[ExecutorData]]//multiple executors per stage (1 per partition)
   val stageIdStageMap = mutable.Map.empty[Int, Stage]
@@ -41,8 +43,8 @@ class TopologyExecutionManager(topologyName: String, topologyExecutionManagerAct
           stage.setTopologyId(topologyName)
           stage.setTopologyExecutionManagerActorUrl(topologyExecutionManagerActorUrl)
           this.stageIdStageMap += stageId -> stage
-          logDebug(s"Scheduling stage: $stageId for topology: $topologyName")
-          this.env.getScheduler.submit(stage.buildTasks)
+          logInfo(s"Scheduling stage: $stageId for topology: $topologyName")
+          this.schedulerActor ! ScheduleTasks(stage.buildTasks)
         }
       }
     }

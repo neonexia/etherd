@@ -1,6 +1,7 @@
 package com.ocg.etherd.runtime.akkautils
 
 import akka.actor._
+import com.ocg.etherd.runtime.scheduler.LocalScheduler
 import com.ocg.etherd.Logging
 import com.ocg.etherd.runtime.executor.{ExecutorWorker, Executor}
 import com.ocg.etherd.runtime.{StageExecutionContext, ClusterManager, TopologyExecutionManager}
@@ -23,8 +24,11 @@ object Utils extends Logging{
     cmSystem.actorOf(Props(new ClusterManager(clusterManagerActorUrlBase)), name=actorName)
   }
 
-  def buildExecutionManagerActor(context: ActorContext, topologyName: String, clusterManagerActorUrl: String, actorName: String): ActorRef = {
-    context.actorOf(Props(new TopologyExecutionManager(topologyName, clusterManagerActorUrl)), name=actorName)
+  def buildExecutionManagerActor(context: ActorContext, topologyName: String,
+                                 clusterManagerActorUrl: String, actorName: String,
+                                 schedulerActor: ActorRef): ActorRef = {
+    context.actorOf(Props(new TopologyExecutionManager(topologyName, clusterManagerActorUrl, schedulerActor)),
+                          name=actorName)
   }
 
   def buildExecutorActor(exSystem: ActorSystem, executorId: String, stageSchedulingInfo: StageSchedulingInfo, host:String, port: Int): ActorRef = {
@@ -36,6 +40,11 @@ object Utils extends Logging{
   def buildExecutorWorkerActor(context:ActorContext, workerId:Int, executorId: String, executionContext: StageExecutionContext): ActorRef = {
     logDebug(s"buildExecutorWorkerActor: Creating executor worker actor with executorId:$executorId and workerId:$workerId")
     context.actorOf(Props(new ExecutorWorker(workerId, executorId, executionContext)))
+  }
+
+  def buildSchedulerActor(context:ActorContext): ActorRef = {
+    logDebug(s"buildSchedulerActor: Creating scheduler")
+    context.actorOf(Props(new LocalScheduler()))
   }
 
   def resolveActor(actorSelection: ActorSelection): ActorRef = {

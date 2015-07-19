@@ -14,8 +14,6 @@ import com.ocg.etherd.streams.{ReadableStreamSpec, EventStreamSpec}
  * 1. Compile the specification into a stages and optionally run it through an optimizer(Optimizer is furture work)
  * 2. Setup event listeners for tracking topology execution
  * 3. Submit the stages to the cluster manager for execution
- * 4. Cluster Manager calls te schduler to allocate resources
- * 5. Execute stages as tasks on those resources
  * @param topologyName
  * @param defaultPartitions
  */

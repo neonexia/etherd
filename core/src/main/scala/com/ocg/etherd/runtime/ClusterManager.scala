@@ -14,27 +14,31 @@ import scala.collection.mutable
 /**
  * ClusterManager runs as a master daemon on the cluster and acts as the primary interface for etherd clients
  * 1. Loads configuration and initializes services like scheduler, message bus, state manager, eventing, logging etc.
- * 2. Receives topology specifications from clients and submits them to the scheduler
+ * 2. Receives topology specifications from clients and submits them to the topology execution manager
  * 3. Responds to requests for topology runtime status and cluster health
- * 4. Stores/Loads all state via the state manager and hence can recover from failures.
  * @param clusterManagerActorUrlBase
  */
 class ClusterManager(clusterManagerActorUrlBase: String) extends Actor with Logging{
   val topologyManagersMap = mutable.HashMap.empty[String, ActorRef]
+  val schedulerActorRef = Utils.buildSchedulerActor(this.context)
 
-  def receive = {
+  def receive = testHooksReceive orElse runtimeReceive
+
+  def runtimeReceive: Receive = {
     case SubmitStages(topologyName: String, stages: List[Stage]) => {
-      logInfo("Received Message SubmitStages")
+      logInfo(s"Received SubmitStages for topology $topologyName")
       this.topologyManagersMap.get(topologyName) match {
         case Some(actorRef) => {
-          logDebug("topology already executing. Ignoring request")
+          logDebug(s"topology $topologyName already executing. Ignoring request")
         }
         case None => {
           try {
             logDebug(s"Received Submit Stages for topology $topologyName")
             val actorName = s"topologyExecutionManagerActor_$topologyName"
             val executionManagerActorUrl = s"$clusterManagerActorUrlBase/executionManagerActor_$topologyName"
-            val executionManagerActor = Utils.buildExecutionManagerActor(context, topologyName, executionManagerActorUrl, s"executionManagerActor_$topologyName")
+            val executionManagerActor = Utils.buildExecutionManagerActor(context, topologyName, executionManagerActorUrl,
+                                                                         s"executionManagerActor_$topologyName",
+                                                                         this.schedulerActorRef)
             topologyManagersMap += topologyName -> executionManagerActor
             executionManagerActor ! ScheduleStages(stages)
           }
@@ -46,6 +50,9 @@ class ClusterManager(clusterManagerActorUrlBase: String) extends Actor with Logg
         }
       }
     }
+  }
+
+  def testHooksReceive: Receive = {
     case GetRegisteredExecutors(topologyName: String) => {
       logDebug(s"Received message GetRegisteredExecutors for topology $topologyName")
       this.topologyManagersMap.get(topologyName) match {
@@ -57,6 +64,10 @@ class ClusterManager(clusterManagerActorUrlBase: String) extends Actor with Logg
           sender ! ExecutorList(List[ExecutorData]())
         }
       }
+    }
+
+    case ShutdownAllScheduledTasks() => {
+      this.schedulerActorRef ! ShutdownAllScheduledTasks
     }
   }
 }
