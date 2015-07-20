@@ -8,10 +8,10 @@ version := "1.0"
 scalaVersion := "2.11.4"
 
 lazy val root = project.in(file(".")).aggregate(core).settings (
-	libraryDependencies += "org.apache.kafka" % "kafka_2.10" % "0.8.2.1",
-	libraryDependencies += "org.apache.kafka" % "kafka-clients" % "0.8.2.1",
-	libraryDependencies += "com.yammer.metrics" % "metrics-core" % "2.2.0",
-	libraryDependencies += "com.yammer.metrics" % "metrics-annotation" % "2.2.0"
+  libraryDependencies += "org.apache.kafka" % "kafka_2.10" % "0.8.2.1",
+  libraryDependencies += "org.apache.kafka" % "kafka-clients" % "0.8.2.1",
+  libraryDependencies += "com.yammer.metrics" % "metrics-core" % "2.2.0",
+  libraryDependencies += "com.yammer.metrics" % "metrics-annotation" % "2.2.0"
 )
 
 lazy val core = project.settings(

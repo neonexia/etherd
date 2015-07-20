@@ -27,7 +27,16 @@ class TopologyExecutionManager(topologyName: String,
   val stageIdInc = new AtomicInteger(1)
   val stageIdExecutorsMap = mutable.Map.empty[Int, ListBuffer[ExecutorData]]//multiple executors per stage (1 per partition)
   val stageIdStageMap = mutable.Map.empty[Int, Stage]
+  val executorActorRefStageIdMap = mutable.Map.empty[ActorRef, Int]
   var executionState = RuntimeState.Init
+
+  override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
+
+  }
+
+  override def postStop(): Unit = {
+    this.terminateAllExecutors("postStop")
+  }
 
   def receive = {
     case ScheduleStages(stages: List[Stage]) => {
@@ -55,6 +64,7 @@ class TopologyExecutionManager(topologyName: String,
 
       //setup a deathwatch
       val actorRef = Utils.resolveActor(this.context.system, executorData.executorUrl.get)
+      this.executorActorRefStageIdMap.getOrElseUpdate(actorRef, executorData.stageId)
       this.context.watch(actorRef)
 
       // register stageId -> ExecutorData
@@ -77,11 +87,21 @@ class TopologyExecutionManager(topologyName: String,
       sender ! ExecutorList(this.stageIdExecutorsMap.values.flatten.toList)
     }
 
-    case Terminated(executorActorRef:ActorRef) => {
+    case Terminated(executorActorRef: ActorRef) => {
       val executorActorPath = executorActorRef.path
         logWarning(s"Executor $executorActorPath terminated")
     }
 
     case _ => logError("Unknown Message received")
+  }
+
+  private def terminateAllExecutors(shutdownReason: String): Unit = {
+    // send shutdown signal to all executors
+    stageIdExecutorsMap.foreach { case(stageId, listOfExecutors) => {
+      logInfo(s"Asking executors to shutdown for stage $stageId")
+      listOfExecutors.foreach { ex =>
+        Utils.resolveActor(this.context.system, ex.executorUrl.get) ! new ControlledShutdown(shutdownReason)
+      }
+    }}
   }
 }

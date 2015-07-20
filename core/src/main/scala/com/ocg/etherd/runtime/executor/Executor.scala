@@ -7,7 +7,7 @@ import scala.concurrent.duration._
 import akka.actor._
 import akka.actor.SupervisorStrategy._
 import com.ocg.etherd.Logging
-import com.ocg.etherd.runtime.RuntimeMessages.{RunStage, ExecuteStage, ExecutorData, RegisterExecutor}
+import com.ocg.etherd.runtime.RuntimeMessages._
 import com.ocg.etherd.runtime.akkautils._
 import com.ocg.etherd.runtime.scheduler.SchedulableTask
 import com.ocg.etherd.topology.{Stage, StageSchedulingInfo}
@@ -97,22 +97,30 @@ private[etherd] class Executor(executorId: String,
         }
       }
     }
+
+    case ControlledShutdown(shutdownReason: String) => {
+      // ask system to shutdown. This should trigger shutdown hooks
+      // and cleanup all child actors
+      logInfo(s"Executor $executorId. Received ControlledShutdown. Reason: $shutdownReason")
+      this.context.system.shutdown()
+    }
+
     case _ => logError("Unknown message received")
   }
 
   private def tryRunStage(stage: Stage): Unit = {
-      val stageId = stage.stageId.get
-      logDebug(s"Executor: $executorId. Starting worker actor")
-      assert(stageId == this.stageSchedulingInfo.stageId, "We should get the same stageId that we registered with")
+    val stageId = stage.stageId.get
+    logDebug(s"Executor: $executorId. Starting worker actor")
+    assert(stageId == this.stageSchedulingInfo.stageId, "We should get the same stageId that we registered with")
 
-      // create a worker actor and delegate the stage execution to it
-      val executorWorker = Utils.buildExecutorWorkerActor(context,
-        this.workerIdInc.getAndIncrement,
-        this.executorId,
-        StageExecutionContext(stage, this.stageSchedulingInfo.partition)
-      )
-      executorWorker ! RunStage
-      this.stageExecutionActor = Some(executorWorker)
+    // create a worker actor and delegate the stage execution to it
+    val executorWorker = Utils.buildExecutorWorkerActor(context,
+      this.workerIdInc.getAndIncrement,
+      this.executorId,
+      StageExecutionContext(stage, this.stageSchedulingInfo.partition)
+    )
+    executorWorker ! RunStage
+    this.stageExecutionActor = Some(executorWorker)
   }
 }
 

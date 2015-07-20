@@ -1,9 +1,7 @@
 package com.ocg.etherd.streams
 
 import java.nio.ByteBuffer
-import com.ocg.etherd.streams.Event
-
-import scala.reflect.{ClassTag, classTag}
+import scala.reflect.ClassTag
 
 class Tuple(record: Array[Byte]) {
 
@@ -33,11 +31,11 @@ object Tuple {
 }
 
 /**
- * Event models a immutable business event that should be processed as unit.
- * Within a topic the "order" uniquely defines the absolute position of event.
- * The key is an opaque structure as far as the system is concerned but can extracted and processed by the processing nodes.
- * The key can also be used for routing and filtering decisions.
- * The record is a of type Tuple which wraps event data
+ * Event class models an immutable business event that should be processed as unit.
+ * -order defines global ordering to the event within the topic.
+ * -key is an opaque structure as far as the system is concerned and can be used for partitioning,
+ * routing and filtering.
+ * -record is a of type Tuple which wraps event data
  */
 class Event(key: Array[Byte], record: Tuple, order: Long = 0) {
   def getKey = this.key

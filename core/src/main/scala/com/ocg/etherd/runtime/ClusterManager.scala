@@ -18,7 +18,7 @@ import scala.collection.mutable
  * 3. Responds to requests for topology runtime status and cluster health
  * @param clusterManagerActorUrlBase
  */
-class ClusterManager(clusterManagerActorUrlBase: String) extends Actor with Logging{
+private[etherd] class ClusterManager(clusterManagerActorUrlBase: String) extends Actor with Logging{
   val topologyManagersMap = mutable.HashMap.empty[String, ActorRef]
   val schedulerActorRef = Utils.buildSchedulerActor(this.context)
 
@@ -29,7 +29,7 @@ class ClusterManager(clusterManagerActorUrlBase: String) extends Actor with Logg
       logInfo(s"Received SubmitStages for topology $topologyName")
       this.topologyManagersMap.get(topologyName) match {
         case Some(actorRef) => {
-          logDebug(s"topology $topologyName already executing. Ignoring request")
+          sender ! logDebug("topology already executing. Ignoring request")
         }
         case None => {
           try {
@@ -53,6 +53,13 @@ class ClusterManager(clusterManagerActorUrlBase: String) extends Actor with Logg
   }
 
   def testHooksReceive: Receive = {
+    case ShutdownTopology(topologyName: String) => {
+      // if we have a tem for this topology then start the shutdown process
+      this.topologyManagersMap.get(topologyName).map {
+        this.topologyManagersMap -= topologyName
+        actorRef => this.context.stop(actorRef)
+      }
+    }
     case GetRegisteredExecutors(topologyName: String) => {
       logDebug(s"Received message GetRegisteredExecutors for topology $topologyName")
       this.topologyManagersMap.get(topologyName) match {
@@ -65,7 +72,6 @@ class ClusterManager(clusterManagerActorUrlBase: String) extends Actor with Logg
         }
       }
     }
-
     case ShutdownAllScheduledTasks() => {
       this.schedulerActorRef ! ShutdownAllScheduledTasks
     }

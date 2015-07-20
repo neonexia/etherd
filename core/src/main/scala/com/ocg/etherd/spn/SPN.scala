@@ -9,9 +9,8 @@ import com.ocg.etherd.streams._
 
 
 /**
- * Each SPN defines some operation on the incoming streams. Its similar to a query operator.
- * eg: JoinSPN, FilterSPN, MapSPN, AggregateSPN(Average, Sum) etc.
- * Each SPN can have 1+ input streams and needs at least one default output stream.
+ * SPN defines some processing on the incoming streams.Each SPN can have 1+ input streams and
+ * must have least one default output stream.
  */
 abstract class SPN(spnId: Int, topologyName: String) extends Serializable with Logging{
   private var linkedSpn: Option[SPN] = None
