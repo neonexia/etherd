@@ -58,7 +58,6 @@ class LocalExecutionSpec extends UnitSpec {
     }
     finally{
       cmShutdown()
-      shutdownTasks(EtherdEnv.get)
     }
    }
 
@@ -103,7 +102,6 @@ class LocalExecutionSpec extends UnitSpec {
     }
     finally{
       cmShutdown()
-      shutdownTasks(EtherdEnv.get)
     }
   }
 
@@ -155,7 +153,6 @@ class LocalExecutionSpec extends UnitSpec {
     }
     finally{
       cmShutdown()
-      shutdownTasks(EtherdEnv.get)
     }
   }
 
@@ -197,7 +194,6 @@ class LocalExecutionSpec extends UnitSpec {
     }
     finally{
       cmShutdown()
-      shutdownTasks(EtherdEnv.get)
     }
   }
 
@@ -256,7 +252,6 @@ class LocalExecutionSpec extends UnitSpec {
     }
     finally{
       cmShutdown()
-      shutdownTasks(EtherdEnv.get)
     }
   }
 }
